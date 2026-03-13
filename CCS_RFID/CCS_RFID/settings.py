@@ -25,7 +25,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'CCS',
+    'CCS',  # Your authentication app
+    'attendance',  # New attendance app
+    'classes',  # New classes app
+    'schedules',
+    'core',
 ]
 
 MIDDLEWARE = [
@@ -104,3 +108,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# At the bottom of your settings.py
+AUTH_USER_MODEL = 'CCS.User'
+
+# Login URLs
+LOGIN_URL = '/'
+LOGIN_REDIRECT_URL = '/dashboard/'
+LOGOUT_REDIRECT_URL = '/'
