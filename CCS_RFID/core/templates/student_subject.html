@@ -16,7 +16,7 @@
       {{ user.get_full_name }}
     </p>
     <p class="text-white/50 text-xs mb-5">
-      Student ID: {{ user.id }} | Current Semester: {{ current_semester|default:"2024-2025" }}
+      Student ID: {{ user.student_id|default:user.id }} | Current Semester: {{ current_semester|default:"2024-2025" }}
     </p>
   </div>
 </div>
@@ -79,113 +79,7 @@
   </div>
 </div>
 
-<!-- Weekly Schedule Grid -->
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-  <div class="px-5 py-4 border-b border-gray-100">
-    <h2 class="text-sm font-semibold text-gray-700 tracking-wide">Weekly Class Schedule</h2>
-  </div>
-  
-  <div class="overflow-x-auto">
-    <table class="w-full">
-      <thead>
-        <tr class="bg-gray-50 border-b border-gray-200">
-          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Time</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Monday</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tuesday</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Wednesday</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Thursday</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Friday</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Saturday</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-100">
-        <!-- Time slots - 7:00 AM to 6:00 PM -->
-        <tr class="hover:bg-gray-50 transition-colors">
-          <td class="px-4 py-3 text-sm font-medium text-gray-700">7:00 - 8:00 AM</td>
-          <td class="px-4 py-3">
-            {% for subject in subjects %}
-              {% if subject.schedule_day == "Monday" and subject.time_start|time:"H" == "07" %}
-                <div class="bg-maroon/10 rounded-lg p-2 border-l-4 border-maroon">
-                  <p class="text-sm font-semibold text-gray-800">{{ subject.name }}</p>
-                  <p class="text-xs text-gray-500">{{ subject.code }}</p>
-                  <p class="text-xs text-gray-500 mt-1">Room: {{ subject.room|default:"TBA" }}</p>
-                </div>
-              {% endif %}
-            {% endfor %}
-          </td>
-          <td class="px-4 py-3">
-            {% for subject in subjects %}
-              {% if subject.schedule_day == "Tuesday" and subject.time_start|time:"H" == "07" %}
-                <div class="bg-maroon/10 rounded-lg p-2 border-l-4 border-maroon">
-                  <p class="text-sm font-semibold text-gray-800">{{ subject.name }}</p>
-                  <p class="text-xs text-gray-500">{{ subject.code }}</p>
-                  <p class="text-xs text-gray-500 mt-1">Room: {{ subject.room|default:"TBA" }}</p>
-                </div>
-              {% endif %}
-            {% endfor %}
-          </td>
-          <td class="px-4 py-3">
-            {% for subject in subjects %}
-              {% if subject.schedule_day == "Wednesday" and subject.time_start|time:"H" == "07" %}
-                <div class="bg-maroon/10 rounded-lg p-2 border-l-4 border-maroon">
-                  <p class="text-sm font-semibold text-gray-800">{{ subject.name }}</p>
-                  <p class="text-xs text-gray-500">{{ subject.code }}</p>
-                  <p class="text-xs text-gray-500 mt-1">Room: {{ subject.room|default:"TBA" }}</p>
-                </div>
-              {% endif %}
-            {% endfor %}
-          </td>
-          <td class="px-4 py-3">
-            {% for subject in subjects %}
-              {% if subject.schedule_day == "Thursday" and subject.time_start|time:"H" == "07" %}
-                <div class="bg-maroon/10 rounded-lg p-2 border-l-4 border-maroon">
-                  <p class="text-sm font-semibold text-gray-800">{{ subject.name }}</p>
-                  <p class="text-xs text-gray-500">{{ subject.code }}</p>
-                  <p class="text-xs text-gray-500 mt-1">Room: {{ subject.room|default:"TBA" }}</p>
-                </div>
-              {% endif %}
-            {% endfor %}
-          </td>
-          <td class="px-4 py-3">
-            {% for subject in subjects %}
-              {% if subject.schedule_day == "Friday" and subject.time_start|time:"H" == "07" %}
-                <div class="bg-maroon/10 rounded-lg p-2 border-l-4 border-maroon">
-                  <p class="text-sm font-semibold text-gray-800">{{ subject.name }}</p>
-                  <p class="text-xs text-gray-500">{{ subject.code }}</p>
-                  <p class="text-xs text-gray-500 mt-1">Room: {{ subject.room|default:"TBA" }}</p>
-                </div>
-              {% endif %}
-            {% endfor %}
-          </td>
-          <td class="px-4 py-3">
-            {% for subject in subjects %}
-              {% if subject.schedule_day == "Saturday" and subject.time_start|time:"H" == "07" %}
-                <div class="bg-maroon/10 rounded-lg p-2 border-l-4 border-maroon">
-                  <p class="text-sm font-semibold text-gray-800">{{ subject.name }}</p>
-                  <p class="text-xs text-gray-500">{{ subject.code }}</p>
-                  <p class="text-xs text-gray-500 mt-1">Room: {{ subject.room|default:"TBA" }}</p>
-                </div>
-              {% endif %}
-            {% endfor %}
-          </td>
-        </tr>
-        
-        <!-- Add more time slots as needed - 8:00, 9:00, etc. -->
-        <tr class="hover:bg-gray-50 transition-colors">
-          <td class="px-4 py-3 text-sm font-medium text-gray-700">8:00 - 9:00 AM</td>
-          <td class="px-4 py-3"></td>
-          <td class="px-4 py-3"></td>
-          <td class="px-4 py-3"></td>
-          <td class="px-4 py-3"></td>
-          <td class="px-4 py-3"></td>
-          <td class="px-4 py-3"></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-</div>
-
-<!-- List View (Alternative) -->
+<!-- List View -->
 <div class="mt-5 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
   <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
     <h2 class="text-sm font-semibold text-gray-700 tracking-wide">Schedule Details</h2>
@@ -200,10 +94,14 @@
       <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div class="flex-1">
           <div class="flex items-center gap-2 mb-1">
-            <div class="w-2 h-2 rounded-full bg-maroon flex-shrink-0"></div>
-            <p class="text-sm font-semibold text-gray-800">
+            <div class="w-2 h-2 rounded-full 
+                 {% if subject.status == 'dropped' %}bg-red-600
+                 {% elif subject.absences >= 4 %}bg-yellow-500
+                 {% else %}bg-maroon{% endif %} flex-shrink-0"></div>
+            <a href="{% url 'student_view_class' %}?class_id={{ subject.id }}" 
+               class="text-sm font-semibold text-gray-800 hover:text-maroon transition-colors">
               {{ subject.name }}
-            </p>
+            </a>
             <p class="text-xs text-gray-400">({{ subject.code }})</p>
           </div>
           <p class="text-xs text-gray-500">{{ subject.description|default:"No description" }}</p>
@@ -229,6 +127,11 @@
           <div class="text-right">
             <p class="text-sm font-semibold text-gray-800">{{ subject.units|default:"3" }} units</p>
             <p class="text-xs text-gray-500">Room: {{ subject.room|default:"TBA" }}</p>
+            {% if subject.status == 'dropped' %}
+              <p class="text-xs text-red-600 font-semibold mt-1">Dropped</p>
+            {% elif subject.absences >= 4 %}
+              <p class="text-xs text-yellow-600 font-semibold mt-1">⚠️ {{ subject.absences }}/5 absences</p>
+            {% endif %}
           </div>
           <div class="w-10 h-10 bg-maroon/10 rounded-lg flex items-center justify-center">
             <span class="text-maroon font-bold text-sm">{{ subject.units|default:"3" }}</span>
@@ -261,7 +164,7 @@
     </div>
     <div class="flex items-center gap-2">
       <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
-      <span class="text-gray-600">At Risk Subjects</span>
+      <span class="text-gray-600">At Risk Subjects (4/5 absences)</span>
     </div>
     <div class="flex items-center gap-2">
       <div class="w-3 h-3 rounded-full bg-red-600"></div>

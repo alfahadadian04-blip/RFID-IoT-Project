@@ -12,13 +12,13 @@
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
       <div>
         <div class="flex items-center gap-2 mb-1">
-          <a href="{% url 'classes' %}" class="text-white/60 hover:text-white transition-colors">
+          <a href="{% url 'student_subject' %}" class="text-white/60 hover:text-white transition-colors">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <polyline points="15 18 9 12 15 6"/>
             </svg>
           </a>
           <h1 class="text-white text-2xl md:text-3xl font-bold tracking-tight">
-            {{ class.subject_description|default:"Class" }}
+            {{ class.subject_description|default:"Class Details" }}
           </h1>
         </div>
         <p class="text-white/70 text-sm font-medium mb-1">
@@ -29,15 +29,14 @@
         </p>
       </div>
       
-      <!-- Start Class Button -->
-      <button id="startClassBtn"
-             class="inline-flex items-center gap-2 px-6 py-3 bg-green-600 rounded-lg text-white text-sm font-semibold
-                    border border-white/10 hover:bg-green-700 transition-colors shadow-md">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-          <polygon points="5 3 19 12 5 21 5 3"/>
+      <!-- View Only Badge -->
+      <div class="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 rounded-lg text-white text-sm font-semibold">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
         </svg>
-        Start Class
-      </button>
+        View Only Mode
+      </div>
     </div>
   </div>
 </div>
@@ -57,50 +56,88 @@
     </div>
   </div>
 
-  <!-- Present Today -->
+  <!-- Your Status -->
   <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
     <div>
-      <p class="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-2">Present Today</p>
-      <p class="text-2xl font-bold text-green-600">{{ present_today|default:"0" }}</p>
+      <p class="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-2">Your Status</p>
+      <p class="text-2xl font-bold 
+        {% if user_status == 'dropped' %}text-red-600
+        {% elif user_absences >= 4 %}text-yellow-600
+        {% else %}text-green-600{% endif %}">
+        {{ user_status|default:"Enrolled"|title }}
+      </p>
     </div>
-    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-      <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-      </svg>
+    <div class="w-10 h-10 
+      {% if user_status == 'dropped' %}bg-red-100
+      {% elif user_absences >= 4 %}bg-yellow-100
+      {% else %}bg-green-100{% endif %} rounded-lg flex items-center justify-center">
+      {% if user_status == 'dropped' %}
+        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      {% elif user_absences >= 4 %}
+        <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+      {% else %}
+        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+        </svg>
+      {% endif %}
     </div>
   </div>
 
-  <!-- Absent Today -->
+  <!-- Your Absences -->
   <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
     <div>
-      <p class="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-2">Absent Today</p>
-      <p class="text-2xl font-bold text-red-600">{{ absent_today|default:"0" }}</p>
+      <p class="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-2">Your Absences</p>
+      <p class="text-2xl font-bold 
+        {% if user_absences >= 5 %}text-red-600
+        {% elif user_absences >= 4 %}text-yellow-600
+        {% else %}text-gray-800{% endif %}">
+        {{ user_absences|default:"0" }} / 5
+      </p>
     </div>
-    <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-      <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-      </svg>
-    </div>
-  </div>
-
-  <!-- Late Today -->
-  <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
-    <div>
-      <p class="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-2">Late Today</p>
-      <p class="text-2xl font-bold text-yellow-600">{{ late_today|default:"0" }}</p>
-    </div>
-    <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-      <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <div class="w-10 h-10 bg-maroon/10 rounded-lg flex items-center justify-center">
+      <svg class="w-5 h-5 text-maroon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
       </svg>
     </div>
   </div>
+
+  <!-- Warning Message -->
+  <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
+    <div>
+      <p class="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-2">Warning</p>
+      {% if user_absences >= 5 %}
+        <p class="text-xs text-red-600 font-semibold">Dropped from class</p>
+      {% elif user_absences >= 4 %}
+        <p class="text-xs text-yellow-600 font-semibold">{{ user_absences_left }} absence left before drop</p>
+      {% else %}
+        <p class="text-xs text-green-600 font-semibold">Good standing</p>
+      {% endif %}
+    </div>
+    <div class="w-10 h-10 
+      {% if user_absences >= 5 %}bg-red-100
+      {% elif user_absences >= 4 %}bg-yellow-100
+      {% else %}bg-green-100{% endif %} rounded-lg flex items-center justify-center">
+      {% if user_absences >= 5 %}
+        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+      {% else %}
+        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M20 12.2A5 5 0 0018 7h0a5 5 0 00-2.2-.8"/>
+        </svg>
+      {% endif %}
+    </div>
+  </div>
 </div>
 
-<!-- Students Table -->
+<!-- Students Table (Read Only) -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
   <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-    <h2 class="text-sm font-semibold text-gray-700 tracking-wide">Student List</h2>
+    <h2 class="text-sm font-semibold text-gray-700 tracking-wide">Classmates</h2>
     <div class="flex items-center gap-3">
       <!-- Search Bar -->
       <div class="relative">
@@ -126,12 +163,11 @@
           <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Gender</th>
           <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
           <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Absences</th>
-          <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Action</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-100" id="studentTableBody">
         {% for student in students %}
-        <tr class="hover:bg-gray-50 transition-colors student-row">
+        <tr class="hover:bg-gray-50 transition-colors student-row {% if student.email == user.email %}bg-maroon/5{% endif %}">
           <td class="px-5 py-3 text-sm text-gray-500">{{ forloop.counter }}</td>
           <td class="px-5 py-3">
             <div class="flex items-center gap-3">
@@ -139,11 +175,16 @@
                 {{ student.name|slice:":2"|upper }}
               </div>
               <div>
-                <p class="text-sm font-medium text-gray-800">{{ student.name }}</p>
+                <p class="text-sm font-medium text-gray-800">
+                  {{ student.name }}
+                  {% if student.email == user.email %}
+                    <span class="text-xs text-maroon ml-1">(You)</span>
+                  {% endif %}
+                </p>
                 <p class="text-xs text-gray-500">{{ student.email }}</p>
               </div>
             </div>
-          </td>
+           </td>
           <td class="px-5 py-3 text-sm text-gray-600">{{ student.student_id }}</td>
           <td class="px-5 py-3 text-sm text-gray-600">{{ student.gender }}</td>
           <td class="px-5 py-3">
@@ -154,21 +195,18 @@
             {% else %}
               <span class="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">Enrolled</span>
             {% endif %}
-          </td>
+           </td>
           <td class="px-5 py-3">
             <span class="{% if student.absences >= 5 %}text-red-600 font-semibold{% elif student.absences >= 4 %}text-yellow-600 font-semibold{% else %}text-gray-600{% endif %}">
               {{ student.absences }} / 5
             </span>
-          </td>
-          <td class="px-5 py-3">
-            <button class="text-maroon hover:text-maroon-light text-sm font-medium">View</button>
-          </td>
-        </tr>
+           </td>
+         </tr>
         {% empty %}
         <tr>
-          <td colspan="7" class="px-5 py-8 text-center text-gray-400">
+          <td colspan="6" class="px-5 py-8 text-center text-gray-400">
             No students enrolled in this class yet.
-          </td>
+           </td>
         </tr>
         {% endfor %}
       </tbody>
@@ -176,38 +214,27 @@
   </div>
 </div>
 
-<!-- Start Class Session Modal -->
-<div id="startClassModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center">
-  <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
-    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-      <h3 class="text-lg font-semibold text-gray-800">Start Class Session</h3>
-      <button id="closeStartClassModal" class="text-gray-400 hover:text-gray-600">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
+<!-- Legend -->
+<div class="mt-5 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+  <div class="px-5 py-4 border-b border-gray-100">
+    <h2 class="text-sm font-semibold text-gray-700 tracking-wide">Legend</h2>
+  </div>
+  <div class="px-5 py-4 flex flex-wrap gap-4 text-xs">
+    <div class="flex items-center gap-2">
+      <div class="w-3 h-3 rounded-full bg-green-600"></div>
+      <span class="text-gray-600">Enrolled - Good Standing</span>
     </div>
-    <div class="px-6 py-4">
-      <p class="text-sm text-gray-600 mb-4">
-        Are you ready to start the class for <strong>{{ class.subject_description|default:"this class" }}</strong>?
-      </p>
-      <div class="bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded mb-4">
-        <p class="text-xs text-yellow-700">
-          <strong>Note:</strong> Starting the class will enable RFID attendance tracking for this session. Students can only tap once.
-        </p>
-      </div>
-      <div class="flex items-center justify-between text-sm mb-4">
-        <span class="text-gray-600">Current Time:</span>
-        <span class="font-semibold text-gray-800" id="currentTime"></span>
-      </div>
+    <div class="flex items-center gap-2">
+      <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+      <span class="text-gray-600">At Risk (4/5 absences)</span>
     </div>
-    <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
-      <button id="cancelStartClass" class="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-colors">
-        Cancel
-      </button>
-      <button id="confirmStartClass" class="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors">
-        Start Class
-      </button>
+    <div class="flex items-center gap-2">
+      <div class="w-3 h-3 rounded-full bg-red-600"></div>
+      <span class="text-gray-600">Dropped (5/5 absences)</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="w-3 h-3 rounded-full bg-maroon/20 border border-maroon"></div>
+      <span class="text-gray-600">Highlighted row = You</span>
     </div>
   </div>
 </div>
@@ -236,81 +263,6 @@
           }
         }
       });
-    });
-  }
-
-  // Start Class Modal
-  const startClassBtn = document.getElementById('startClassBtn');
-  const startClassModal = document.getElementById('startClassModal');
-  const closeStartClassModal = document.getElementById('closeStartClassModal');
-  const cancelStartClass = document.getElementById('cancelStartClass');
-  const confirmStartClass = document.getElementById('confirmStartClass');
-
-  function openStartClassModal() {
-    if (startClassModal) {
-      startClassModal.classList.remove('hidden');
-      startClassModal.classList.add('flex');
-      const now = new Date();
-      const currentTimeSpan = document.getElementById('currentTime');
-      if (currentTimeSpan) {
-        currentTimeSpan.textContent = now.toLocaleTimeString();
-      }
-    }
-  }
-
-  function closeStartClassModalFunc() {
-    if (startClassModal) {
-      startClassModal.classList.add('hidden');
-      startClassModal.classList.remove('flex');
-    }
-  }
-
-  if (startClassBtn) {
-    startClassBtn.addEventListener('click', openStartClassModal);
-  }
-  if (closeStartClassModal) {
-    closeStartClassModal.addEventListener('click', closeStartClassModalFunc);
-  }
-  if (cancelStartClass) {
-    cancelStartClass.addEventListener('click', closeStartClassModalFunc);
-  }
-  if (confirmStartClass) {
-    confirmStartClass.addEventListener('click', () => {
-      const classId = {{ class.id }};
-      const csrfToken = '{{ csrf_token }}';
-      
-      fetch(`/start-class-session/${classId}/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': csrfToken,
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        credentials: 'same-origin'
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          alert(data.message);
-          window.location.href = `/active-class-session/${classId}/`;
-        } else {
-          alert('Error: ' + data.error);
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        alert('Failed to start class session. Check console for details.');
-      });
-      closeStartClassModalFunc();
-    });
-  }
-
-  // Close modal when clicking outside
-  if (startClassModal) {
-    startClassModal.addEventListener('click', (e) => {
-      if (e.target === startClassModal) {
-        closeStartClassModalFunc();
-      }
     });
   }
 </script>

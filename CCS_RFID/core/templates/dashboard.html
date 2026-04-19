@@ -32,8 +32,8 @@
         Start a class
       </a>
 
-      <!-- Upload Masterlist -->
-      <button id="uploadMasterlistBtn"
+      <!-- Upload Masterlist - Now redirects to classes page -->
+      <a href="{% url 'classes' %}"
          class="inline-flex items-center gap-2 px-4 py-2.5 bg-maroon rounded-lg text-white text-sm font-semibold
                 border border-white/10 hover:bg-maroon-light transition-colors shadow-md">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -41,7 +41,7 @@
           <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
         </svg>
         Upload Masterlist
-      </button>
+      </a>
     </div>
   </div>
 </div>
@@ -169,96 +169,4 @@
 </div>
 <!-- /Today's Class -->
 
-<!-- Upload Masterlist Modal (Hidden by default) -->
-<div id="uploadModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center">
-  <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
-    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-      <h3 class="text-lg font-semibold text-gray-800">Upload Masterlist</h3>
-      <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
-    </div>
-    <div class="px-6 py-4">
-      <p class="text-sm text-gray-600 mb-4">
-        Upload an Excel file (.xlsx, .xls) containing student information.
-      </p>
-      <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-maroon transition-colors">
-        <svg class="w-10 h-10 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-          <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-        </svg>
-        <p class="text-sm text-gray-500 mb-2">Click to browse or drag and drop</p>
-        <p class="text-xs text-gray-400">Supported formats: .xlsx, .xls</p>
-        <input type="file" id="fileInput" class="hidden" accept=".xlsx,.xls">
-        <button id="browseBtn" class="mt-4 px-4 py-2 bg-maroon text-white text-sm font-semibold rounded-lg hover:bg-maroon-light transition-colors">
-          Browse Files
-        </button>
-      </div>
-    </div>
-    <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
-      <button id="cancelModalBtn" class="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-colors">
-        Cancel
-      </button>
-      <button id="uploadBtn" class="px-4 py-2 bg-maroon text-white text-sm font-semibold rounded-lg hover:bg-maroon-light transition-colors">
-        Upload
-      </button>
-    </div>
-  </div>
-</div>
-
-<script>
-  // Modal functionality
-  const uploadBtn = document.getElementById('uploadMasterlistBtn');
-  const modal = document.getElementById('uploadModal');
-  const closeModalBtn = document.getElementById('closeModalBtn');
-  const cancelModalBtn = document.getElementById('cancelModalBtn');
-  const browseBtn = document.getElementById('browseBtn');
-  const fileInput = document.getElementById('fileInput');
-
-  function openModal() {
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-  }
-
-  function closeModal() {
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-  }
-
-  uploadBtn.addEventListener('click', openModal);
-  closeModalBtn.addEventListener('click', closeModal);
-  cancelModalBtn.addEventListener('click', closeModal);
-  
-  browseBtn.addEventListener('click', () => {
-    fileInput.click();
-  });
-
-  fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-      console.log('File selected:', e.target.files[0].name);
-      // You can add auto-upload here if desired
-    }
-  });
-
-  // Close modal when clicking outside
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
-      closeModal();
-    }
-  });
-
-  // Upload button click handler
-  const uploadFileBtn = document.getElementById('uploadBtn');
-  uploadFileBtn.addEventListener('click', () => {
-    if (fileInput.files.length > 0) {
-      console.log('Uploading file:', fileInput.files[0].name);
-      // Add your upload logic here
-      alert('Upload functionality will be implemented here');
-      closeModal();
-    } else {
-      alert('Please select a file first');
-    }
-  });
-</script>
 {% endblock %}

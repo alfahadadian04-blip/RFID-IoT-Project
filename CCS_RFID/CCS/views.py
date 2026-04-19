@@ -57,9 +57,12 @@ def rfid_handler(request):
             
             print(f"📇 RFID received: {rfid_tag}, Student ID: {student_id}")
             
+            # CASE 1: This is for REGISTRATION (student_id is provided)
             if student_id:
                 try:
                     student = User.objects.get(id=student_id, user_type='student')
+                    
+                    # Check if RFID is already used by another student
                     existing = User.objects.filter(rfid_tag=rfid_tag).exclude(id=student_id).first()
                     if existing:
                         return JsonResponse({
@@ -67,6 +70,7 @@ def rfid_handler(request):
                             'message': 'RFID tag already registered to another student'
                         }, status=400)
                     
+                    # Assign RFID to student
                     student.rfid_tag = rfid_tag
                     student.save()
                     
@@ -81,7 +85,9 @@ def rfid_handler(request):
                 except User.DoesNotExist:
                     return JsonResponse({'error': 'Student not found'}, status=404)
             
+            # CASE 2: This is for ATTENDANCE (no student_id)
             else:
+                # Find student by RFID
                 student = User.objects.filter(
                     rfid_tag=rfid_tag, 
                     user_type='student',
@@ -99,7 +105,7 @@ def rfid_handler(request):
                     print(f"❌ No student found with RFID: {rfid_tag}")
                     return JsonResponse({
                         'status': 'error',
-                        'message': 'Student not found'
+                        'message': 'Student not found. Please register your RFID first.'
                     }, status=404)
                 
         except json.JSONDecodeError:
@@ -321,13 +327,6 @@ def studentRegistration(request):
                     return render(request, 'studentRegistration.html')
         
         form = StudentRegistrationForm(request.POST)
-        
-        # DEBUG: Check form data
-        print("=" * 50)
-        print("DEBUG: Checking form data")
-        print(f"student_id from request.POST: {request.POST.get('student_id')}")
-        print(f"student_id in form.data: {form.data.get('student_id') if form.data else 'No form data'}")
-        print("=" * 50)
         
         if form.is_valid():
             print("Form is VALID")

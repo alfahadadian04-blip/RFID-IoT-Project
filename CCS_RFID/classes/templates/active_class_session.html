@@ -1,0 +1,413 @@
+{% extends "base.html" %}
+
+{% block title %}Active Class Session - {{ class.subject_code }}{% endblock %}
+
+{% block content %}
+<style>
+  /* Modal overlay */
+  .attendance-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+  }
+  
+  .attendance-modal.active {
+    opacity: 1;
+    visibility: visible;
+  }
+  
+  /* Modal content */
+  .modal-content {
+    background: white;
+    border-radius: 24px;
+    padding: 32px 48px;
+    text-align: center;
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+    max-width: 450px;
+    width: 90%;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  }
+  
+  .attendance-modal.active .modal-content {
+    transform: scale(1);
+  }
+  
+  /* Success modal */
+  .modal-success .modal-icon {
+    background: linear-gradient(135deg, #10b981, #059669);
+  }
+  
+  /* Error modal */
+  .modal-error .modal-icon {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+  }
+  
+  /* Warning modal */
+  .modal-warning .modal-icon {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+  }
+  
+  /* Info modal */
+  .modal-info .modal-icon {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+  }
+  
+  .modal-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+  }
+  
+  .modal-icon svg {
+    width: 45px;
+    height: 45px;
+    color: white;
+  }
+  
+  .modal-title {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    font-family: 'Playfair Display', serif;
+  }
+  
+  .modal-message {
+    color: #6b7280;
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+  
+  .modal-time {
+    font-size: 14px;
+    color: #9ca3af;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+  }
+  
+  .modal-button {
+    background: #5A1219;
+    color: white;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 40px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 8px;
+  }
+  
+  .modal-button:hover {
+    background: #9e2430;
+    transform: scale(1.02);
+  }
+  
+  /* Pulse animation for live badge */
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  .live-pulse {
+    animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  /* Student row highlight */
+  .student-row-present {
+    background-color: #ecfdf5;
+    transition: all 0.3s;
+  }
+</style>
+
+<!-- Modal Container -->
+<div id="attendanceModal" class="attendance-modal">
+  <div class="modal-content">
+    <div class="modal-icon" id="modalIcon">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M9 11l3 3L22 4"/>
+      </svg>
+    </div>
+    <h3 class="modal-title" id="modalTitle">Success!</h3>
+    <p class="modal-message" id="modalMessage">Attendance recorded successfully</p>
+    <div class="modal-time" id="modalTime"></div>
+    <button class="modal-button" onclick="closeModal()">OK</button>
+  </div>
+</div>
+
+<!-- Welcome Banner -->
+<div class="relative rounded-2xl overflow-hidden mb-5 bg-green-700 banner-noise shadow-lg">
+  <div class="relative z-10 p-6 md:p-7">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <div class="w-3 h-3 rounded-full bg-green-400 live-pulse"></div>
+          <h1 class="text-white text-2xl md:text-3xl font-bold tracking-tight">
+            LIVE: {{ class.subject_description|default:"Class Session" }}
+          </h1>
+        </div>
+        <p class="text-white/70 text-sm font-medium mb-1">
+          {{ class.subject_code|default:"Subject Code" }} | Room {{ class.room|default:"TBA" }}
+        </p>
+        <p class="text-white/50 text-xs">
+          Session started: {{ session.start_time|date:"F j, Y" }} at {{ session.start_time|time:"g:i A" }}
+        </p>
+      </div>
+      
+      <button id="endClassBtn" class="inline-flex items-center gap-2 px-6 py-3 bg-red-600 rounded-lg text-white text-sm font-semibold hover:bg-red-700 transition-colors shadow-md">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="16" y1="2" x2="16" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+        End Class
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center justify-between">
+    <div>
+      <p class="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-2">Total Students</p>
+      <p class="text-3xl font-bold text-gray-800">{{ total_students }}</p>
+    </div>
+    <div class="w-12 h-12 bg-maroon/10 rounded-xl flex items-center justify-center">
+      <svg class="w-6 h-6 text-maroon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M12 6.25278V19.2528M12 6.25278C10.8321 5.47686 9.24649 5 7.5 5C5.75351 5 4.16789 5.47686 3 6.25278M12 6.25278C13.1679 5.47686 14.7535 5 16.5 5C18.2465 5 19.8321 5.47686 21 6.25278"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center justify-between">
+    <div>
+      <p class="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-2">Present</p>
+      <p class="text-3xl font-bold text-green-600" id="presentCount">{{ present_count }}</p>
+    </div>
+    <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+      <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M9 11l3 3L22 4"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center justify-between">
+    <div>
+      <p class="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-2">Attendance Rate</p>
+      <p class="text-3xl font-bold text-gray-800" id="attendanceRate">{{ attendance_rate }}%</p>
+    </div>
+    <div class="w-12 h-12 bg-maroon/10 rounded-xl flex items-center justify-center">
+      <svg class="w-6 h-6 text-maroon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- Students Table -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+  <div class="px-6 py-4 border-b border-gray-100">
+    <h2 class="text-sm font-semibold text-gray-700 tracking-wide">Student Attendance</h2>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="w-full">
+      <thead class="bg-gray-50 border-b border-gray-200">
+        <tr>
+          <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">#</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Student Name</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Student ID</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Time In</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100" id="attendanceTableBody">
+        {% for student in students %}
+        <tr class="hover:bg-gray-50 transition-colors student-row" data-student-id="{{ student.id }}" data-student-name="{{ student.name }}" data-student-email="{{ student.email }}">
+          <td class="px-6 py-3 text-sm text-gray-500">{{ forloop.counter }}</td>
+          <td class="px-6 py-3">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-full bg-maroon/10 flex items-center justify-center text-maroon font-semibold text-sm">
+                {{ student.name|slice:":2"|upper }}
+              </div>
+              <div>
+                <p class="text-sm font-medium text-gray-800">{{ student.name }}</p>
+                <p class="text-xs text-gray-500">{{ student.email }}</p>
+              </div>
+            </div>
+          </td>
+          <td class="px-6 py-3 text-sm text-gray-600">{{ student.student_id }}</td>
+          <td class="px-6 py-3 status-cell">
+            {% if student.status == 'present' %}
+              <span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">✅ Present</span>
+            {% else %}
+              <span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">⏳ Not yet tapped</span>
+            {% endif %}
+          </td>
+          <td class="px-6 py-3 time-cell text-sm text-gray-600">{{ student.time_in|default:"—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  let lastPresentCount = {{ present_count }};
+  let pollInterval = null;
+  
+  // Show modal function
+  function showModal(type, title, message, timeIn = null) {
+    const modal = document.getElementById('attendanceModal');
+    const modalIcon = document.getElementById('modalIcon');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalMessage = document.getElementById('modalMessage');
+    const modalTime = document.getElementById('modalTime');
+    
+    // Reset classes
+    modal.className = 'attendance-modal';
+    
+    // Set type
+    if (type === 'success') {
+      modal.classList.add('modal-success');
+      modalIcon.innerHTML = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>`;
+      modalTitle.textContent = title || '✓ Attendance Recorded!';
+    } else if (type === 'error') {
+      modal.classList.add('modal-error');
+      modalIcon.innerHTML = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+      modalTitle.textContent = title || '⛔ Already Tapped';
+    } else if (type === 'warning') {
+      modal.classList.add('modal-warning');
+      modalIcon.innerHTML = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`;
+      modalTitle.textContent = title || '⚠️ Not Enrolled';
+    } else {
+      modal.classList.add('modal-info');
+      modalIcon.innerHTML = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+      modalTitle.textContent = title || 'Information';
+    }
+    
+    modalMessage.textContent = message;
+    
+    if (timeIn) {
+      modalTime.textContent = `⏰ Time in: ${timeIn}`;
+      modalTime.style.display = 'block';
+    } else {
+      modalTime.style.display = 'none';
+    }
+    
+    modal.classList.add('active');
+    
+    // Auto close after 4 seconds for success, 5 for others
+    const timeout = type === 'success' ? 4000 : 5000;
+    setTimeout(() => {
+      closeModal();
+    }, timeout);
+  }
+  
+  function closeModal() {
+    const modal = document.getElementById('attendanceModal');
+    modal.classList.remove('active');
+  }
+  
+  // Click outside to close
+  document.getElementById('attendanceModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+      closeModal();
+    }
+  });
+  
+  // Update student row to present
+  function updateStudentToPresent(studentId, studentName, timeIn) {
+    const rows = document.querySelectorAll('#attendanceTableBody tr');
+    for (let row of rows) {
+      if (row.getAttribute('data-student-id') == studentId) {
+        const statusCell = row.querySelector('.status-cell');
+        const timeCell = row.querySelector('.time-cell');
+        statusCell.innerHTML = '<span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">✅ Present</span>';
+        timeCell.textContent = timeIn;
+        row.classList.add('student-row-present');
+        break;
+      }
+    }
+  }
+  
+  // Check for new attendance via polling
+  function checkAttendanceUpdates() {
+    fetch(window.location.href)
+      .then(response => response.text())
+      .then(html => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        
+        const newPresentCount = doc.getElementById('presentCount')?.innerText;
+        const newAttendanceRate = doc.getElementById('attendanceRate')?.innerText;
+        const newTableBody = doc.getElementById('attendanceTableBody');
+        
+        if (newPresentCount && parseInt(newPresentCount) > lastPresentCount) {
+          // New attendance detected - find which student
+          const newRows = newTableBody.querySelectorAll('tr');
+          const oldRows = document.querySelectorAll('#attendanceTableBody tr');
+          
+          for (let i = 0; i < newRows.length; i++) {
+            const newStatus = newRows[i].querySelector('.status-cell span')?.textContent;
+            const oldStatus = oldRows[i]?.querySelector('.status-cell span')?.textContent;
+            
+            if (newStatus?.includes('Present') && oldStatus?.includes('Not yet tapped')) {
+              const studentName = newRows[i].querySelector('.text-gray-800')?.textContent;
+              const timeIn = newRows[i].querySelector('.time-cell')?.textContent;
+              const studentId = newRows[i].getAttribute('data-student-id');
+              
+              // Show success modal
+              showModal('success', '✅ Attendance Recorded!', `${studentName} is now present.`, timeIn);
+              updateStudentToPresent(studentId, studentName, timeIn);
+              break;
+            }
+          }
+          
+          lastPresentCount = parseInt(newPresentCount);
+        }
+        
+        // Update stats
+        if (newPresentCount) {
+          document.getElementById('presentCount').innerText = newPresentCount;
+        }
+        if (newAttendanceRate) {
+          document.getElementById('attendanceRate').innerText = newAttendanceRate;
+        }
+      })
+      .catch(error => console.error('Polling error:', error));
+  }
+  
+  // End class button
+  document.getElementById('endClassBtn').addEventListener('click', () => {
+    if (confirm('End this class session?')) {
+      fetch(`/end-class-session/{{ session.id }}/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}', 'X-Requested-With': 'XMLHttpRequest' }
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) window.location.href = `/view_class/?class_id={{ class.id }}`;
+        else alert('Error: ' + data.error);
+      });
+    }
+  });
+  
+  // Start polling every 3 seconds
+  setInterval(checkAttendanceUpdates, 3000);
+</script>
+{% endblock %}

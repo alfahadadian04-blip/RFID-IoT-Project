@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.utils import timezone
-from django.core.validators import RegexValidator  # ADD THIS for validation
+from django.core.validators import RegexValidator
 
 # Custom User Manager
 class CustomUserManager(BaseUserManager):
@@ -21,6 +21,7 @@ class CustomUserManager(BaseUserManager):
         extra_fields.setdefault('user_type', 'admin')
         
         return self.create_user(email, password, **extra_fields)
+
 
 # Custom User Model
 class User(AbstractBaseUser, PermissionsMixin):
@@ -60,9 +61,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         ('Networking', 'Networking'),
     )
     
-    # ============================================
-    # NEW: STUDENT ID FIELD (ADD THIS)
-    # ============================================
+    # Student ID FIELD
     student_id = models.CharField(
         max_length=10,
         unique=True,
@@ -137,6 +136,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     
     def get_short_name(self):
         return self.first_name
+
 
 class PendingRFID(models.Model):
     student = models.OneToOneField(User, on_delete=models.CASCADE, limit_choices_to={'user_type': 'student'})
