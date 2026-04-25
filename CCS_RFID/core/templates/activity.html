@@ -1,161 +1,488 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block title %}Activity Log | Procurement Office{% endblock %}
+
+{% block header_subtitle %}Track and manage student attendance records{% endblock %}
 
 {% block content %}
-<div class="font-sans min-h-screen flex items-center justify-center p-8">
-  <div class="bg-white rounded-xl p-6 pb-[60px] w-full max-w-7xl shadow-lg">
-    <h1 class="text-2xl font-bold text-gray-900 underline mb-6">Activity Log</h1>
-    
-    <!-- Log List -->
-    <div class="flex flex-col gap-0 border border-gray-300 rounded-lg overflow-hidden" id="logList"></div>
-  </div>
+<div class="container mx-auto px-4 py-6 max-w-7xl">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Activity Log</h1>
+        <p class="text-gray-500 text-sm mt-1">View and manage all student attendance records</p>
+    </div>
+
+    <!-- Stats Cards - Consistent with theme -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-xs font-semibold uppercase tracking-widest">Total Records</p>
+                    <p class="text-2xl font-bold text-gray-800 mt-1" id="totalRecords">0</p>
+                </div>
+                <div class="w-10 h-10 bg-maroon/10 rounded-full flex items-center justify-center">
+                    <svg class="w-5 h-5 text-maroon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-xs font-semibold uppercase tracking-widest">Present</p>
+                    <p class="text-2xl font-bold text-green-600 mt-1" id="presentCount">0</p>
+                </div>
+                <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-xs font-semibold uppercase tracking-widest">Late</p>
+                    <p class="text-2xl font-bold text-yellow-600 mt-1" id="lateCount">0</p>
+                </div>
+                <div class="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-xs font-semibold uppercase tracking-widest">Absent</p>
+                    <p class="text-2xl font-bold text-red-600 mt-1" id="absentCount">0</p>
+                </div>
+                <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Bar -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+        <div class="flex flex-col md:flex-row gap-4">
+            <!-- Search -->
+            <div class="flex-1">
+                <div class="relative">
+                    <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input type="text" id="searchInput" placeholder="Search by student name or ID..." 
+                           class="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon">
+                </div>
+            </div>
+            
+            <!-- Status Filter -->
+            <select id="statusFilter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon">
+                <option value="all">All Status</option>
+                <option value="present">Present</option>
+                <option value="late">Late</option>
+                <option value="absent">Absent</option>
+            </select>
+            
+            <!-- Date Range -->
+            <div class="flex gap-2 items-center">
+                <input type="date" id="startDate" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon">
+                <span class="text-gray-400">→</span>
+                <input type="date" id="endDate" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon">
+            </div>
+            
+            <!-- Refresh Button -->
+            <button id="refreshBtn" class="px-4 py-2 bg-gradient-to-r from-maroon to-maroon-dark hover:from-maroon-dark hover:to-maroon text-white rounded-lg transition shadow-sm flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                <span>Refresh</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loadingIndicator" class="hidden text-center py-12">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-maroon"></div>
+        <p class="text-gray-500 mt-3">Loading activity log...</p>
+    </div>
+
+    <!-- Activity Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[800px]">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                        <th class="px-4 md:px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Student</th>
+                        <th class="px-4 md:px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Student ID</th>
+                        <th class="px-4 md:px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Class</th>
+                        <th class="px-4 md:px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Section</th>
+                        <th class="px-4 md:px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
+                        <th class="px-4 md:px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Time In</th>
+                        <th class="px-4 md:px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                        <th class="px-4 md:px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="activityTableBody" class="divide-y divide-gray-100">
+                    <tr>
+                        <td colspan="8" class="text-center py-12 text-gray-400">Loading activities...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="px-4 md:px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <p class="text-sm text-gray-600" id="paginationInfo">Showing 0 to 0 of 0 results</p>
+                <div class="flex gap-2">
+                    <button id="prevPage" disabled class="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-600 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition">
+                        Previous
+                    </button>
+                    <span id="pageIndicator" class="px-3 py-1 text-sm text-gray-600">Page 1</span>
+                    <button id="nextPage" disabled class="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-600 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition">
+                        Next
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Update Status Modal -->
+<div id="updateModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden items-center justify-center transition-all duration-300">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 transform transition-all duration-300 scale-95 opacity-0" id="modalContent">
+        <div class="bg-gradient-to-r from-maroon to-maroon-dark rounded-t-2xl px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-white">Update Status</h3>
+                        <p class="text-red-100 text-xs">Change attendance status</p>
+                    </div>
+                </div>
+                <button id="closeModalBtn" class="text-white/70 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="p-6">
+            <div class="mb-4">
+                <label class="block text-gray-700 font-medium text-sm mb-2">Select New Status</label>
+                <select id="newStatus" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon">
+                    <option value="present">✅ Present</option>
+                    <option value="late">⏰ Late</option>
+                    <option value="absent">❌ Absent</option>
+                </select>
+            </div>
+            <input type="hidden" id="updateAttendanceId">
+            
+            <div class="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-200">
+                <button id="cancelModalBtn" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition">
+                    Cancel
+                </button>
+                <button id="confirmUpdateBtn" class="px-4 py-2 bg-gradient-to-r from-maroon to-maroon-dark hover:from-maroon-dark hover:to-maroon text-white font-semibold rounded-lg shadow-md transition">
+                    Update Status
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div id="toast" class="fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg hidden transition-all duration-300 z-50">
+    <div class="flex items-center gap-3">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+        <span id="toastMessage">Updated successfully!</span>
+    </div>
 </div>
 
 <script>
-  (function() {
-    const logs = [
-      { name: "John Doe", status: "Present", time: "08:30 AM", class: "Mathematics 101", section: "Section A", id: "2024-1001" },
-      { name: "John Doe", status: "Absent", time: "08:30 AM", class: "Mathematics 101", section: "Section A", id: "2024-1002" },
-      { name: "John Doe", status: "Present", time: "09:30 AM", class: "Physics 201", section: "Section B", id: "2024-1003" },
-      { name: "John Doe", status: "Present", time: "09:30 AM", class: "Physics 201", section: "Section B", id: "2024-1004" },
-      { name: "John Doe", status: "Present", time: "11:00 AM", class: "English Literature", section: "Section C", id: "2024-1005" },
-      { name: "John Doe", status: "Present", time: "11:00 AM", class: "English Literature", section: "Section C", id: "2024-1006" },
-      { name: "John Doe", status: "Absent", time: "01:00 PM", class: "Computer Science", section: "Section A", id: "2024-1007" },
-      { name: "John Doe", status: "Present", time: "01:00 PM", class: "Computer Science", section: "Section A", id: "2024-1008" },
-      { name: "John Doe", status: "Present", time: "02:30 PM", class: "History 205", section: "Section B", id: "2024-1009" },
-      { name: "John Doe", status: "Late", time: "02:30 PM", class: "History 205", section: "Section B", id: "2024-1010" },
-      { name: "John Doe", status: "Present", time: "04:00 PM", class: "Physical Education", section: "Section C", id: "2024-1011" },
-    ];
-
-    const list = document.getElementById("logList");
-    if (!list) return;
-
-    list.innerHTML = '';
-
-    logs.forEach((log, i) => {
-      const item = document.createElement("div");
-      item.className = "flex flex-col lg:flex-row lg:items-center justify-between p-5 border-b border-gray-300 bg-white last:border-b-0 hover:bg-gray-50 transition";
-      
-      // Left section: Student info with grid layout for more width utilization
-      const leftDiv = document.createElement("div");
-      leftDiv.className = "grid grid-cols-1 md:grid-cols-4 gap-4 flex-1 mb-3 lg:mb-0";
-      
-      // Name column
-      const nameDiv = document.createElement("div");
-      nameDiv.className = "flex flex-col";
-      const nameLabel = document.createElement("span");
-      nameLabel.className = "text-xs text-gray-500 uppercase tracking-wider mb-0.5 lg:hidden";
-      nameLabel.textContent = "Student";
-      const nameSpan = document.createElement("span");
-      nameSpan.className = "text-sm font-semibold text-gray-900";
-      nameSpan.textContent = log.name;
-      nameDiv.appendChild(nameLabel);
-      nameDiv.appendChild(nameSpan);
-      
-      // ID column
-      const idDiv = document.createElement("div");
-      idDiv.className = "flex flex-col";
-      const idLabel = document.createElement("span");
-      idLabel.className = "text-xs text-gray-500 uppercase tracking-wider mb-0.5 lg:hidden";
-      idLabel.textContent = "ID";
-      const idSpan = document.createElement("span");
-      idSpan.className = "text-sm text-gray-700";
-      idSpan.textContent = log.id;
-      idDiv.appendChild(idLabel);
-      idDiv.appendChild(idSpan);
-      
-      // Class column
-      const classDiv = document.createElement("div");
-      classDiv.className = "flex flex-col";
-      const classLabel = document.createElement("span");
-      classLabel.className = "text-xs text-gray-500 uppercase tracking-wider mb-0.5 lg:hidden";
-      classLabel.textContent = "Class";
-      const classSpan = document.createElement("span");
-      classSpan.className = "text-sm text-gray-700";
-      classSpan.textContent = log.class;
-      classDiv.appendChild(classLabel);
-      classDiv.appendChild(classSpan);
-      
-      // Time/Section column
-      const timeDiv = document.createElement("div");
-      timeDiv.className = "flex flex-col";
-      const timeLabel = document.createElement("span");
-      timeLabel.className = "text-xs text-gray-500 uppercase tracking-wider mb-0.5 lg:hidden";
-      timeLabel.textContent = "Time/Section";
-      const timeSpan = document.createElement("span");
-      timeSpan.className = "text-sm text-gray-700";
-      timeSpan.textContent = `${log.time} • ${log.section}`;
-      timeDiv.appendChild(timeLabel);
-      timeDiv.appendChild(timeSpan);
-      
-      leftDiv.appendChild(nameDiv);
-      leftDiv.appendChild(idDiv);
-      leftDiv.appendChild(classDiv);
-      leftDiv.appendChild(timeDiv);
-      
-      // Right section: Status and button
-      const rightDiv = document.createElement("div");
-      rightDiv.className = "flex items-center justify-between lg:justify-end gap-4 lg:gap-6";
-      
-      const statusSpan = document.createElement("span");
-      const isPresent = log.status === "Present";
-      const isLate = log.status === "Late";
-      const isAbsent = log.status === "Absent";
-      
-      let statusColor = "";
-      if (isPresent) statusColor = "text-green-700 bg-green-50";
-      else if (isLate) statusColor = "text-yellow-700 bg-yellow-50";
-      else if (isAbsent) statusColor = "text-red-700 bg-red-50";
-      
-      statusSpan.className = `text-xs font-semibold px-3 py-1.5 rounded-full ${statusColor} min-w-[80px] text-center`;
-      statusSpan.textContent = log.status;
-
-      const btn = document.createElement("button");
-      
-      // Set initial button styling based on current status
-      if (isPresent) {
-        btn.className = "border-none rounded-md px-5 py-2 text-xs font-semibold cursor-pointer whitespace-nowrap transition-all hover:opacity-85 bg-maroon text-white shadow-sm hover:shadow min-w-[110px]";
-        btn.textContent = "Mark Absent";
-      } else if (isLate) {
-        btn.className = "border-none rounded-md px-5 py-2 text-xs font-semibold cursor-pointer whitespace-nowrap transition-all hover:opacity-85 bg-maroon text-white shadow-sm hover:shadow min-w-[110px]";
-        btn.textContent = "Mark Present";
-      } else {
-        btn.className = "border-none rounded-md px-5 py-2 text-xs font-semibold cursor-pointer whitespace-nowrap transition-all hover:opacity-85 bg-green-700 text-white shadow-sm hover:shadow min-w-[110px]";
-        btn.textContent = "Mark Present";
-      }
-
-      btn.addEventListener("click", () => {
-        const currentlyPresent = statusSpan.textContent === "Present";
-        const currentlyLate = statusSpan.textContent === "Late";
-        const currentlyAbsent = statusSpan.textContent === "Absent";
+    let allActivities = [];
+    let filteredActivities = [];
+    let currentPage = 1;
+    const rowsPerPage = 10;
+    let currentUpdateId = null;
+    
+    // Status colors mapping
+    const statusColors = {
+        'present': { bg: 'bg-green-100', text: 'text-green-700', icon: '✅' },
+        'late': { bg: 'bg-yellow-100', text: 'text-yellow-700', icon: '⏰' },
+        'absent': { bg: 'bg-red-100', text: 'text-red-700', icon: '❌' }
+    };
+    
+    // Load activities from API
+    async function loadActivities() {
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const tableBody = document.getElementById('activityTableBody');
         
-        if (currentlyPresent) {
-          // Present -> Absent
-          statusSpan.textContent = "Absent";
-          statusSpan.className = "text-xs font-semibold px-3 py-1.5 rounded-full text-red-700 bg-red-50 min-w-[80px] text-center";
-          btn.textContent = "Mark Present";
-          btn.className = "border-none rounded-md px-5 py-2 text-xs font-semibold cursor-pointer whitespace-nowrap transition-all hover:opacity-85 bg-green-700 text-white shadow-sm hover:shadow min-w-[110px]";
-        } else if (currentlyLate) {
-          // Late -> Present
-          statusSpan.textContent = "Present";
-          statusSpan.className = "text-xs font-semibold px-3 py-1.5 rounded-full text-green-700 bg-green-50 min-w-[80px] text-center";
-          btn.textContent = "Mark Absent";
-          btn.className = "border-none rounded-md px-5 py-2 text-xs font-semibold cursor-pointer whitespace-nowrap transition-all hover:opacity-85 bg-maroon text-white shadow-sm hover:shadow min-w-[110px]";
-        } else if (currentlyAbsent) {
-          // Absent -> Present
-          statusSpan.textContent = "Present";
-          statusSpan.className = "text-xs font-semibold px-3 py-1.5 rounded-full text-green-700 bg-green-50 min-w-[80px] text-center";
-          btn.textContent = "Mark Absent";
-          btn.className = "border-none rounded-md px-5 py-2 text-xs font-semibold cursor-pointer whitespace-nowrap transition-all hover:opacity-85 bg-maroon text-white shadow-sm hover:shadow min-w-[110px]";
+        loadingIndicator.classList.remove('hidden');
+        tableBody.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-400">Loading activities...</td></tr>';
+        
+        try {
+            const response = await fetch('/api/activity-log/');
+            const data = await response.json();
+            
+            if (data.success) {
+                allActivities = data.activities;
+                applyFilters();
+            } else {
+                tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-12 text-red-400">Error: ${data.error}</td></tr>`;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            tableBody.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-red-400">Failed to load activities</td></tr>';
+        } finally {
+            loadingIndicator.classList.add('hidden');
         }
-      });
-
-      rightDiv.appendChild(statusSpan);
-      rightDiv.appendChild(btn);
-      
-      item.appendChild(leftDiv);
-      item.appendChild(rightDiv);
-      list.appendChild(item);
+    }
+    
+    // Apply filters and update UI
+    function applyFilters() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const statusFilter = document.getElementById('statusFilter').value;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        
+        filteredActivities = allActivities.filter(activity => {
+            // Search filter
+            const matchesSearch = activity.student_name.toLowerCase().includes(searchTerm) ||
+                                 activity.student_id.toLowerCase().includes(searchTerm);
+            
+            // Status filter
+            const matchesStatus = statusFilter === 'all' || activity.status === statusFilter;
+            
+            // Date filter
+            let matchesDate = true;
+            if (startDate && endDate) {
+                const activityDate = new Date(activity.date);
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+                matchesDate = activityDate >= start && activityDate <= end;
+            }
+            
+            return matchesSearch && matchesStatus && matchesDate;
+        });
+        
+        // Update stats
+        updateStats();
+        
+        // Reset to first page and render
+        currentPage = 1;
+        renderTable();
+    }
+    
+    // Update statistics cards
+    function updateStats() {
+        const presentCount = filteredActivities.filter(a => a.status === 'present').length;
+        const lateCount = filteredActivities.filter(a => a.status === 'late').length;
+        const absentCount = filteredActivities.filter(a => a.status === 'absent').length;
+        
+        document.getElementById('totalRecords').textContent = filteredActivities.length;
+        document.getElementById('presentCount').textContent = presentCount;
+        document.getElementById('lateCount').textContent = lateCount;
+        document.getElementById('absentCount').textContent = absentCount;
+    }
+    
+    // Render table with pagination
+    function renderTable() {
+        const tableBody = document.getElementById('activityTableBody');
+        const start = (currentPage - 1) * rowsPerPage;
+        const end = start + rowsPerPage;
+        const pageActivities = filteredActivities.slice(start, end);
+        
+        if (pageActivities.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-400">No activities found</td></tr>';
+        } else {
+            tableBody.innerHTML = pageActivities.map(activity => {
+                const colors = statusColors[activity.status] || statusColors.absent;
+                return `
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-4 md:px-6 py-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-full bg-maroon/10 flex items-center justify-center text-maroon font-semibold text-xs">
+                                    ${getInitials(activity.student_name)}
+                                </div>
+                                <span class="text-sm font-medium text-gray-800">${escapeHtml(activity.student_name)}</span>
+                            </div>
+                        </td>
+                        <td class="px-4 md:px-6 py-3 text-sm text-gray-600">${escapeHtml(activity.student_id)}</td>
+                        <td class="px-4 md:px-6 py-3">
+                            <div class="text-sm font-medium text-gray-800">${escapeHtml(activity.class_name)}</div>
+                            <div class="text-xs text-gray-500">${escapeHtml(activity.class_description)}</div>
+                        </td>
+                        <td class="px-4 md:px-6 py-3 text-sm text-gray-600">${escapeHtml(activity.section)}</td>
+                        <td class="px-4 md:px-6 py-3 text-sm text-gray-600">${escapeHtml(activity.date)}</td>
+                        <td class="px-4 md:px-6 py-3 text-sm text-gray-600">${escapeHtml(activity.time_in)}</td>
+                        <td class="px-4 md:px-6 py-3">
+                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${colors.bg} ${colors.text}">
+                                ${colors.icon} ${activity.status.charAt(0).toUpperCase() + activity.status.slice(1)}
+                            </span>
+                        </td>
+                        <td class="px-4 md:px-6 py-3">
+                            <button onclick="openUpdateModal(${activity.id}, '${activity.status}')" 
+                                    class="text-maroon hover:text-maroon-dark text-sm font-medium transition">
+                                Edit
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        // Update pagination info
+        const totalPages = Math.ceil(filteredActivities.length / rowsPerPage);
+        const startNum = start + 1;
+        const endNum = Math.min(end, filteredActivities.length);
+        document.getElementById('paginationInfo').textContent = `Showing ${startNum} to ${endNum} of ${filteredActivities.length} results`;
+        document.getElementById('pageIndicator').textContent = `Page ${currentPage} of ${totalPages || 1}`;
+        
+        // Update button states
+        document.getElementById('prevPage').disabled = currentPage === 1;
+        document.getElementById('nextPage').disabled = currentPage >= totalPages;
+    }
+    
+    // Get initials
+    function getInitials(name) {
+        return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    }
+    
+    // Escape HTML
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    
+    // Open update modal
+    window.openUpdateModal = function(attendanceId, currentStatus) {
+        currentUpdateId = attendanceId;
+        document.getElementById('newStatus').value = currentStatus;
+        document.getElementById('updateModal').classList.remove('hidden');
+        document.getElementById('updateModal').classList.add('flex');
+        setTimeout(() => {
+            document.getElementById('modalContent').classList.remove('scale-95', 'opacity-0');
+            document.getElementById('modalContent').classList.add('scale-100', 'opacity-100');
+        }, 10);
+    };
+    
+    // Close modal
+    function closeModal() {
+        document.getElementById('modalContent').classList.remove('scale-100', 'opacity-100');
+        document.getElementById('modalContent').classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            document.getElementById('updateModal').classList.add('hidden');
+            document.getElementById('updateModal').classList.remove('flex');
+            currentUpdateId = null;
+        }, 200);
+    }
+    
+    // Show toast notification
+    function showToast(message, isError = false) {
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toastMessage');
+        toastMessage.textContent = message;
+        toast.className = `fixed bottom-4 right-4 ${isError ? 'bg-red-500' : 'bg-green-500'} text-white px-6 py-3 rounded-lg shadow-lg transition-all duration-300 z-50`;
+        toast.classList.remove('hidden');
+        
+        setTimeout(() => {
+            toast.classList.add('hidden');
+        }, 3000);
+    }
+    
+    // Update attendance status
+    async function updateAttendance() {
+        const newStatus = document.getElementById('newStatus').value;
+        
+        if (!currentUpdateId) return;
+        
+        try {
+            const response = await fetch('/api/update-attendance-status/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    attendance_id: currentUpdateId,
+                    status: newStatus
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(`Status updated to ${newStatus}!`);
+                closeModal();
+                loadActivities();
+            } else {
+                showToast(data.error || 'Failed to update status', true);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Failed to update status', true);
+        }
+    }
+    
+    // Event listeners
+    document.getElementById('searchInput').addEventListener('input', applyFilters);
+    document.getElementById('statusFilter').addEventListener('change', applyFilters);
+    document.getElementById('startDate').addEventListener('change', applyFilters);
+    document.getElementById('endDate').addEventListener('change', applyFilters);
+    document.getElementById('refreshBtn').addEventListener('click', loadActivities);
+    document.getElementById('prevPage').addEventListener('click', () => {
+        if (currentPage > 1) {
+            currentPage--;
+            renderTable();
+        }
     });
-  })();
+    document.getElementById('nextPage').addEventListener('click', () => {
+        const totalPages = Math.ceil(filteredActivities.length / rowsPerPage);
+        if (currentPage < totalPages) {
+            currentPage++;
+            renderTable();
+        }
+    });
+    
+    // Modal event listeners
+    document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+    document.getElementById('cancelModalBtn').addEventListener('click', closeModal);
+    document.getElementById('confirmUpdateBtn').addEventListener('click', updateAttendance);
+    document.getElementById('updateModal').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('updateModal')) closeModal();
+    });
+    
+    // Set default date range (start of current semester to today)
+    const today = new Date();
+    const startOfYear = new Date(today.getFullYear(), 0, 1);
+    
+    document.getElementById('startDate').value = startOfYear.toISOString().split('T')[0];
+    document.getElementById('endDate').value = today.toISOString().split('T')[0];
+    
+    // Initialize
+    loadActivities();
+    
+    // Auto-refresh every 30 seconds
+    setInterval(loadActivities, 30000);
 </script>
 {% endblock %}

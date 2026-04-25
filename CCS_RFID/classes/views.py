@@ -3,8 +3,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 from datetime import datetime, time, timedelta
 from .models import Class, Enrollment, ClassSession, Attendance
@@ -14,16 +15,12 @@ import traceback
 import json
 import logging
 import re
+import io
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, landscape
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.lib.enums import TA_CENTER, TA_LEFT
-from datetime import datetime
-from django.http import HttpResponse
-from django.views.decorators.http import require_http_methods, require_GET, require_POST
-import io
+from reportlab.lib.enums import TA_CENTER
 
 logger = logging.getLogger(__name__)
 
@@ -833,18 +830,16 @@ def end_class_session(request, session_id):
             dropped_students = []
             newly_absent_students = []
             
-            # FIRST: Process each enrollment to mark absences
+            # Process each enrollment to mark absences
             for enrollment in enrollments:
                 student = enrollment.student
                 
                 if student.id not in present_student_ids:
-                    # Student is absent - mark as absent
                     newly_absent_students.append(student)
                     old_absence_count = enrollment.absence_count
                     enrollment.absence_count += 1
                     absence_count = enrollment.absence_count
                     
-                    # Check warning thresholds
                     if absence_count == 3 and old_absence_count < 3:
                         warning_students.append({
                             'student_name': student.get_full_name(),
@@ -870,7 +865,7 @@ def end_class_session(request, session_id):
                     
                     enrollment.save()
             
-            # SECOND: Create absent attendance records for absent students
+            # Create absent attendance records for absent students
             for student in newly_absent_students:
                 Attendance.objects.get_or_create(
                     session=session,
@@ -878,41 +873,42 @@ def end_class_session(request, session_id):
                     defaults={'status': 'absent'}
                 )
             
-            # THIRD: Refresh attendances to include both present AND absent records
-            all_attendances = Attendance.objects.filter(session=session).select_related('student')
-            present_count = all_attendances.filter(status='present').count()
-            absent_count = all_attendances.filter(status='absent').count()
-            
-            # End the session
+            # CRITICAL: Set session status to 'ended'
             session.status = 'ended'
             session.end_time = timezone.now()
             session.save()
             
-            # Prepare complete attendance data for PDF
-            attendance_data = []
-            for enrollment in enrollments:
-                student = enrollment.student
-                attendance = all_attendances.filter(student=student).first()
-                
-                is_present = attendance and attendance.status == 'present'
-                
-                attendance_data.append({
-                    'student_id': student.student_id if hasattr(student, 'student_id') else 'N/A',
-                    'name': student.get_full_name(),
-                    'email': student.email,
-                    'course': getattr(student, 'course', 'N/A'),
-                    'status': 'Present' if is_present else 'Absent',
-                    'time_in': attendance.time_in.strftime('%I:%M %p') if attendance and attendance.time_in and is_present else '—'
-                })
+            print(f"[DEBUG] Session {session.id} ended with status: {session.status}")
+            print(f"[DEBUG] Total attendances: {Attendance.objects.filter(session=session).count()}")
             
-            # Sort data: Present first, then by name
-            attendance_data.sort(key=lambda x: (x['status'] != 'Present', x['name']))
+            # Prepare response
+            all_attendances = Attendance.objects.filter(session=session)
+            present_count = all_attendances.filter(status='present').count()
+            absent_count = all_attendances.filter(status='absent').count()
             
             # Check if PDF generation is requested
             generate_pdf = request.POST.get('generate_pdf', False) or request.GET.get('pdf', False)
             
             if generate_pdf:
-                # Generate PDF with complete attendance data
+                # Prepare attendance data for PDF
+                attendance_data = []
+                for enrollment in enrollments:
+                    student = enrollment.student
+                    attendance = all_attendances.filter(student=student).first()
+                    
+                    is_present = attendance and attendance.status == 'present'
+                    
+                    attendance_data.append({
+                        'student_id': student.student_id if hasattr(student, 'student_id') else 'N/A',
+                        'name': student.get_full_name(),
+                        'email': student.email,
+                        'course': getattr(student, 'course', 'N/A'),
+                        'status': 'Present' if is_present else 'Absent',
+                        'time_in': attendance.time_in.strftime('%I:%M %p') if attendance and attendance.time_in and is_present else '—'
+                    })
+                
+                attendance_data.sort(key=lambda x: (x['status'] != 'Present', x['name']))
+                
                 pdf_content = generate_attendance_pdf(
                     session.class_obj, 
                     session, 
@@ -921,13 +917,11 @@ def end_class_session(request, session_id):
                     absent_count
                 )
                 
-                # Create HTTP response with PDF
                 filename = f"Attendance_{session.class_obj.subject_code}_{session.start_time.strftime('%Y%m%d_%H%M')}.pdf"
                 response = HttpResponse(pdf_content, content_type='application/pdf')
                 response['Content-Disposition'] = f'attachment; filename="{filename}"'
                 return response
             
-            # Return JSON for AJAX request (without PDF)
             return JsonResponse({
                 'success': True,
                 'present_count': present_count,
@@ -938,17 +932,11 @@ def end_class_session(request, session_id):
             })
             
         except ClassSession.DoesNotExist:
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({'error': 'Active session not found'}, status=404)
-            messages.error(request, 'Active session not found')
-            return redirect('classes')
+            return JsonResponse({'error': 'Active session not found'}, status=404)
         except Exception as e:
             import traceback
             traceback.print_exc()
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({'error': str(e)}, status=500)
-            messages.error(request, f'Error ending session: {str(e)}')
-            return redirect('classes')
+            return JsonResponse({'error': str(e)}, status=500)
     
     return JsonResponse({'error': 'Invalid request method'}, status=400)
 
@@ -1453,3 +1441,133 @@ def get_session_attendance(request, session_id):
             'success': False,
             'error': str(e)
         }, status=500)
+
+# ============================================
+# ATTENDANCE HISTORY API
+# ============================================
+@login_required
+@require_http_methods(["GET"])
+def get_student_attendance_history(request, student_id, class_id):
+    """API endpoint to get attendance history for a specific student in a specific class"""
+    try:
+        # Verify teacher owns this class
+        class_obj = Class.objects.get(id=class_id, teacher=request.user)
+        
+        # Get the student
+        student = User.objects.get(id=student_id, user_type='student')
+        
+        # Get all ended sessions for this class, ordered by most recent first
+        sessions = ClassSession.objects.filter(
+            class_obj=class_obj,
+            status='ended'
+        ).order_by('-start_time')[:10]
+        
+        attendance_history = []
+        
+        for session in sessions:
+            # Check if student has attendance record for this session
+            attendance = Attendance.objects.filter(session=session, student=student).first()
+            
+            if attendance:
+                attendance_history.append({
+                    'date': session.start_time.strftime('%B %d, %Y'),
+                    'time': session.start_time.strftime('%I:%M %p'),
+                    'status': attendance.status,
+                    'time_in': attendance.time_in.strftime('%I:%M %p') if attendance.time_in else None
+                })
+            else:
+                # Student was absent (no attendance record for ended session)
+                attendance_history.append({
+                    'date': session.start_time.strftime('%B %d, %Y'),
+                    'time': session.start_time.strftime('%I:%M %p'),
+                    'status': 'absent',
+                    'time_in': None
+                })
+        
+        return JsonResponse({
+            'success': True,
+            'attendance_history': attendance_history,
+            'total_sessions': len(attendance_history)
+        })
+        
+    except Class.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Class not found'}, status=404)
+    except User.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Student not found'}, status=404)
+    except Exception as e:
+        print(f"Error in get_student_attendance_history: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+def get_activity_log(request):
+    """API endpoint to get activity log for the teacher's classes"""
+    try:
+        # Get all attendance records for classes taught by this teacher
+        # Get all classes taught by the teacher
+        teacher_classes = Class.objects.filter(teacher=request.user)
+        
+        # Get all sessions for these classes
+        sessions = ClassSession.objects.filter(
+            class_obj__in=teacher_classes
+        ).order_by('-start_time')
+        
+        # Build activity log data
+        activities = []
+        for session in sessions:
+            attendances = Attendance.objects.filter(session=session).select_related('student')
+            
+            for attendance in attendances:
+                activities.append({
+                    'id': attendance.id,
+                    'student_name': attendance.student.get_full_name(),
+                    'student_id': attendance.student.student_id or 'N/A',
+                    'class_name': session.class_obj.subject_code,
+                    'class_description': session.class_obj.subject_description,
+                    'section': session.class_obj.section or 'N/A',
+                    'date': session.start_time.strftime('%B %d, %Y'),
+                    'time': session.start_time.strftime('%I:%M %p'),
+                    'status': attendance.status,
+                    'time_in': attendance.time_in.strftime('%I:%M %p') if attendance.time_in else 'N/A'
+                })
+        
+        return JsonResponse({
+            'success': True,
+            'activities': activities
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+def update_attendance_status(request):
+    """API endpoint to update attendance status"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            attendance_id = data.get('attendance_id')
+            new_status = data.get('status')
+            
+            attendance = Attendance.objects.get(id=attendance_id)
+            
+            # Verify teacher owns this class
+            if attendance.session.class_obj.teacher != request.user:
+                return JsonResponse({'success': False, 'error': 'Unauthorized'}, status=403)
+            
+            # Update status
+            attendance.status = new_status
+            attendance.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Status updated to {new_status}'
+            })
+            
+        except Attendance.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Attendance record not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=400)

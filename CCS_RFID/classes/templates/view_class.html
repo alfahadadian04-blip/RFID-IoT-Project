@@ -29,10 +29,7 @@
         </p>
       </div>
       
-      <!-- Start Class Button -->
-      <button id="startClassBtn"
-             class="inline-flex items-center gap-2 px-6 py-3 bg-green-600 rounded-lg text-white text-sm font-semibold
-                    border border-white/10 hover:bg-green-700 transition-colors shadow-md">
+      <button id="startClassBtn" class="inline-flex items-center gap-2 px-6 py-3 bg-green-600 rounded-lg text-white text-sm font-semibold border border-white/10 hover:bg-green-700 transition-colors shadow-md">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
           <polygon points="5 3 19 12 5 21 5 3"/>
         </svg>
@@ -43,110 +40,74 @@
 </div>
 
 <!-- Class Stats -->
-<div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-5">
-  <!-- Total Students -->
-  <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
-    <div>
-      <p class="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-2">Total Students</p>
-      <p class="text-2xl font-bold text-gray-800">{{ total_students|default:"0" }}</p>
-    </div>
-    <div class="w-10 h-10 bg-maroon/10 rounded-lg flex items-center justify-center">
-      <svg class="w-5 h-5 text-maroon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path d="M12 6.25278V19.2528M12 6.25278C10.8321 5.47686 9.24649 5 7.5 5C5.75351 5 4.16789 5.47686 3 6.25278M12 6.25278C13.1679 5.47686 14.7535 5 16.5 5C18.2465 5 19.8321 5.47686 21 6.25278"/>
-      </svg>
-    </div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-5">
+  <div class="bg-white rounded-xl p-3 md:p-4 shadow-sm border border-gray-100">
+    <p class="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-1 md:mb-2">Total Students</p>
+    <p class="text-xl md:text-2xl font-bold text-gray-800">{{ total_students|default:"0" }}</p>
   </div>
-
-  <!-- Present Today -->
-  <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
-    <div>
-      <p class="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-2">Present Today</p>
-      <p class="text-2xl font-bold text-green-600">{{ present_today|default:"0" }}</p>
-    </div>
-    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-      <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-      </svg>
-    </div>
+  <div class="bg-white rounded-xl p-3 md:p-4 shadow-sm border border-gray-100">
+    <p class="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-1 md:mb-2">Present Today</p>
+    <p class="text-xl md:text-2xl font-bold text-green-600">{{ present_today|default:"0" }}</p>
   </div>
-
-  <!-- Absent Today -->
-  <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
-    <div>
-      <p class="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-2">Absent Today</p>
-      <p class="text-2xl font-bold text-red-600">{{ absent_today|default:"0" }}</p>
-    </div>
-    <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-      <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-      </svg>
-    </div>
+  <div class="bg-white rounded-xl p-3 md:p-4 shadow-sm border border-gray-100">
+    <p class="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-1 md:mb-2">Absent Today</p>
+    <p class="text-xl md:text-2xl font-bold text-red-600">{{ absent_today|default:"0" }}</p>
   </div>
-
-  <!-- Late Today -->
-  <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
-    <div>
-      <p class="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-2">Late Today</p>
-      <p class="text-2xl font-bold text-yellow-600">{{ late_today|default:"0" }}</p>
-    </div>
-    <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-      <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-      </svg>
-    </div>
+  <div class="bg-white rounded-xl p-3 md:p-4 shadow-sm border border-gray-100">
+    <p class="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-1 md:mb-2">Late Today</p>
+    <p class="text-xl md:text-2xl font-bold text-yellow-600">{{ late_today|default:"0" }}</p>
   </div>
 </div>
 
 <!-- Students Table -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-  <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+  <div class="px-4 md:px-5 py-3 md:py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
     <h2 class="text-sm font-semibold text-gray-700 tracking-wide">Student List</h2>
     <div class="flex items-center gap-3">
-      <!-- Search Bar -->
       <div class="relative">
         <input type="text" id="searchInput" placeholder="Search student..." 
-               class="pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-maroon focus:ring-1 focus:ring-maroon">
+               class="pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-maroon focus:ring-1 focus:ring-maroon w-full sm:w-auto">
         <svg class="w-4 h-4 text-gray-400 absolute left-2 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
       </div>
-      <span class="text-xs text-maroon font-medium bg-maroon/8 px-2.5 py-1 rounded-full">
+      <span class="text-xs text-maroon font-medium bg-maroon/8 px-2.5 py-1 rounded-full whitespace-nowrap">
         {{ students|length|default:"0" }} students
       </span>
     </div>
   </div>
 
   <div class="overflow-x-auto">
-    <table class="w-full">
+    <table class="w-full min-w-[600px]">
       <thead class="bg-gray-50 border-b border-gray-200">
         <tr>
-          <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">#</th>
-          <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Student Name</th>
-          <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Student ID</th>
-          <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Gender</th>
-          <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-          <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Absences</th>
-          <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Action</th>
+          <th class="px-3 md:px-5 py-3 text-left text-xs font-semibold text-gray-600">#</th>
+          <th class="px-3 md:px-5 py-3 text-left text-xs font-semibold text-gray-600">Student Name</th>
+          <th class="px-3 md:px-5 py-3 text-left text-xs font-semibold text-gray-600">Student ID</th>
+          <th class="px-3 md:px-5 py-3 text-left text-xs font-semibold text-gray-600">Gender</th>
+          <th class="px-3 md:px-5 py-3 text-left text-xs font-semibold text-gray-600">Status</th>
+          <th class="px-3 md:px-5 py-3 text-left text-xs font-semibold text-gray-600">Absences</th>
+          <th class="px-3 md:px-5 py-3 text-left text-xs font-semibold text-gray-600">Action</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-100" id="studentTableBody">
         {% for student in students %}
-        <tr class="hover:bg-gray-50 transition-colors student-row">
-          <td class="px-5 py-3 text-sm text-gray-500">{{ forloop.counter }}</td>
-          <td class="px-5 py-3">
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-full bg-maroon/10 flex items-center justify-center text-maroon font-semibold text-sm">
+        <tr class="hover:bg-gray-50 transition-colors student-row" data-student-id="{{ student.id }}">
+          <td class="px-3 md:px-5 py-3 text-sm text-gray-500">{{ forloop.counter }}</td>
+          <td class="px-3 md:px-5 py-3">
+            <div class="flex items-center gap-2 md:gap-3">
+              <div class="w-7 h-7 md:w-8 md:h-8 rounded-full bg-maroon/10 flex items-center justify-center text-maroon font-semibold text-xs md:text-sm">
                 {{ student.name|slice:":2"|upper }}
               </div>
               <div>
-                <p class="text-sm font-medium text-gray-800">{{ student.name }}</p>
-                <p class="text-xs text-gray-500">{{ student.email }}</p>
+                <p class="text-sm font-medium text-gray-800 student-name">{{ student.name }}</p>
+                <p class="text-xs text-gray-500 student-email hidden md:block">{{ student.email }}</p>
               </div>
             </div>
           </td>
-          <td class="px-5 py-3 text-sm text-gray-600">{{ student.student_id }}</td>
-          <td class="px-5 py-3 text-sm text-gray-600">{{ student.gender }}</td>
-          <td class="px-5 py-3">
+          <td class="px-3 md:px-5 py-3 text-sm text-gray-600 student-id">{{ student.student_id }}</td>
+          <td class="px-3 md:px-5 py-3 text-sm text-gray-600 student-gender">{{ student.gender }}</td>
+          <td class="px-3 md:px-5 py-3 student-status">
             {% if student.status == 'dropped' %}
               <span class="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">Dropped</span>
             {% elif student.absences >= 4 %}
@@ -155,24 +116,111 @@
               <span class="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">Enrolled</span>
             {% endif %}
           </td>
-          <td class="px-5 py-3">
+          <td class="px-3 md:px-5 py-3 student-absences">
             <span class="{% if student.absences >= 5 %}text-red-600 font-semibold{% elif student.absences >= 4 %}text-yellow-600 font-semibold{% else %}text-gray-600{% endif %}">
               {{ student.absences }} / 5
             </span>
           </td>
-          <td class="px-5 py-3">
-            <button class="text-maroon hover:text-maroon-light text-sm font-medium">View</button>
+          <td class="px-3 md:px-5 py-3">
+            <button class="view-student-btn text-maroon hover:text-maroon-light text-sm font-medium transition-colors" 
+                    data-id="{{ student.id }}"
+                    data-name="{{ student.name }}"
+                    data-email="{{ student.email }}"
+                    data-student-id="{{ student.student_id }}"
+                    data-gender="{{ student.gender }}"
+                    data-status="{% if student.status == 'dropped' %}Dropped{% elif student.absences >= 4 %}At Risk{% else %}Enrolled{% endif %}"
+                    data-absences="{{ student.absences }}"
+                    data-course="{{ student.course }}">
+              View
+            </button>
           </td>
         </tr>
         {% empty %}
         <tr>
-          <td colspan="7" class="px-5 py-8 text-center text-gray-400">
-            No students enrolled in this class yet.
-          </td>
+          <td colspan="7" class="px-5 py-8 text-center text-gray-400">No students enrolled in this class yet.</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
+  </div>
+</div>
+
+<!-- Student Details Modal -->
+<div id="studentDetailsModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center transition-all duration-300">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 transform transition-all duration-300 scale-95 opacity-0" id="modalContent">
+    <!-- Modal Header -->
+    <div class="bg-gradient-to-r from-maroon to-maroon-dark rounded-t-2xl px-6 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 md:w-12 md:h-12 bg-white/20 rounded-full flex items-center justify-center">
+            <svg class="w-5 h-5 md:w-6 md:h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-lg md:text-xl font-bold text-white" id="modalStudentName">Student Details</h3>
+            <p class="text-red-100 text-xs">Complete student information</p>
+          </div>
+        </div>
+        <button id="closeModalBtn" class="text-white/70 hover:text-white transition">
+          <svg class="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="p-4 md:p-6 max-h-[80vh] overflow-y-auto">
+      <!-- Student Avatar and Basic Info -->
+      <div class="flex flex-col md:flex-row gap-6 items-center md:items-start mb-6 pb-6 border-b border-gray-200">
+        <div class="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-maroon to-maroon-dark flex items-center justify-center text-white text-2xl md:text-3xl font-bold shadow-lg" id="studentAvatar">
+          JD
+        </div>
+        <div class="flex-1 text-center md:text-left">
+          <h2 class="text-xl md:text-2xl font-bold text-gray-800" id="studentFullName"></h2>
+          <p class="text-gray-500 text-sm" id="studentEmail"></p>
+          <div class="flex flex-wrap gap-2 mt-2 justify-center md:justify-start">
+            <span class="px-2 py-1 rounded-full text-xs font-semibold bg-maroon/10 text-maroon" id="studentCourse"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Student Information Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div class="bg-gray-50 rounded-lg p-3 md:p-4">
+          <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Student ID</p>
+          <p class="text-base md:text-lg font-semibold text-gray-800" id="studentIdDisplay"></p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3 md:p-4">
+          <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Gender</p>
+          <p class="text-base md:text-lg font-semibold text-gray-800" id="studentGenderDisplay"></p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3 md:p-4">
+          <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Enrollment Status</p>
+          <p class="text-base md:text-lg font-semibold" id="studentStatusDisplay"></p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3 md:p-4">
+          <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Absence Count</p>
+          <div class="flex items-center gap-2">
+            <p class="text-base md:text-lg font-semibold" id="studentAbsencesDisplay"></p>
+            <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div class="h-full bg-maroon rounded-full" id="absenceProgressBar" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Warning Message (if applicable) -->
+      <div id="warningMessage" class="hidden mb-6 p-4 rounded-lg"></div>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="px-6 py-4 border-t border-gray-200 flex justify-end">
+      <button id="closeModalFooterBtn" class="px-5 py-2 bg-maroon text-white rounded-lg hover:bg-maroon-dark transition font-medium">
+        Close
+      </button>
+    </div>
   </div>
 </div>
 
@@ -222,8 +270,8 @@
       const searchTerm = this.value.toLowerCase();
       
       studentRows.forEach(row => {
-        const studentName = row.querySelector('td:nth-child(2) .text-gray-800');
-        const studentId = row.querySelector('td:nth-child(3)');
+        const studentName = row.querySelector('.student-name');
+        const studentId = row.querySelector('.student-id');
         
         if (studentName && studentId) {
           const name = studentName.textContent.toLowerCase();
@@ -238,6 +286,146 @@
       });
     });
   }
+
+  // Student Details Modal
+  const modal = document.getElementById('studentDetailsModal');
+  const modalContent = document.getElementById('modalContent');
+  const closeModalBtn = document.getElementById('closeModalBtn');
+  const closeModalFooterBtn = document.getElementById('closeModalFooterBtn');
+
+  function openModal() {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => {
+      modalContent.classList.remove('scale-95', 'opacity-0');
+      modalContent.classList.add('scale-100', 'opacity-100');
+    }, 10);
+  }
+
+  function closeModal() {
+    modalContent.classList.remove('scale-100', 'opacity-100');
+    modalContent.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }, 200);
+  }
+
+  // Close modal with buttons
+  if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+  if (closeModalFooterBtn) closeModalFooterBtn.addEventListener('click', closeModal);
+
+  // Close modal when clicking outside
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+  }
+
+  // View Student Details
+  document.querySelectorAll('.view-student-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const studentId = this.dataset.id;
+      const studentName = this.dataset.name;
+      const studentEmail = this.dataset.email;
+      const studentIdNum = this.dataset.studentId;
+      const gender = this.dataset.gender;
+      const status = this.dataset.status;
+      const absences = parseInt(this.dataset.absences);
+      const course = this.dataset.course || 'BS Information Technology';
+
+      // Update modal content
+      document.getElementById('modalStudentName').textContent = studentName;
+      document.getElementById('studentFullName').textContent = studentName;
+      document.getElementById('studentEmail').textContent = studentEmail;
+      document.getElementById('studentIdDisplay').textContent = studentIdNum;
+      document.getElementById('studentGenderDisplay').textContent = gender || 'Not specified';
+      document.getElementById('studentCourse').textContent = `Course: ${course}`;
+      
+      // Update status with appropriate color
+      const statusSpan = document.getElementById('studentStatusDisplay');
+      statusSpan.textContent = status;
+      if (status === 'Dropped') {
+        statusSpan.className = 'text-base md:text-lg font-semibold text-red-600';
+      } else if (status === 'At Risk') {
+        statusSpan.className = 'text-base md:text-lg font-semibold text-yellow-600';
+      } else {
+        statusSpan.className = 'text-base md:text-lg font-semibold text-green-600';
+      }
+      
+      // Update absences
+      const absencesSpan = document.getElementById('studentAbsencesDisplay');
+      absencesSpan.textContent = `${absences} / 5`;
+      
+      // Update progress bar
+      const progressPercent = (absences / 5) * 100;
+      const progressBar = document.getElementById('absenceProgressBar');
+      progressBar.style.width = `${progressPercent}%`;
+      
+      // Set progress bar color based on absences
+      if (absences >= 5) {
+        progressBar.className = 'h-full bg-red-600 rounded-full';
+      } else if (absences >= 4) {
+        progressBar.className = 'h-full bg-yellow-600 rounded-full';
+      } else {
+        progressBar.className = 'h-full bg-maroon rounded-full';
+      }
+      
+      // Update avatar
+      const initials = studentName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+      document.getElementById('studentAvatar').textContent = initials;
+      
+      // Show warning message if applicable
+      const warningDiv = document.getElementById('warningMessage');
+      if (absences >= 5) {
+        warningDiv.className = 'mb-6 p-4 rounded-lg bg-red-50 border-l-4 border-red-500';
+        warningDiv.innerHTML = `
+          <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <div>
+              <p class="text-sm font-semibold text-red-800">Student Dropped</p>
+              <p class="text-xs text-red-700">This student has exceeded the maximum allowed absences (5) and has been dropped from the class.</p>
+            </div>
+          </div>
+        `;
+        warningDiv.classList.remove('hidden');
+      } else if (absences >= 4) {
+        warningDiv.className = 'mb-6 p-4 rounded-lg bg-yellow-50 border-l-4 border-yellow-500';
+        warningDiv.innerHTML = `
+          <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            <div>
+              <p class="text-sm font-semibold text-yellow-800">⚠️ Final Warning</p>
+              <p class="text-xs text-yellow-700">This student has ${absences} absences. One more absence will result in being dropped from the class.</p>
+            </div>
+          </div>
+        `;
+        warningDiv.classList.remove('hidden');
+      } else if (absences >= 3) {
+        warningDiv.className = 'mb-6 p-4 rounded-lg bg-orange-50 border-l-4 border-orange-500';
+        warningDiv.innerHTML = `
+          <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <div>
+              <p class="text-sm font-semibold text-orange-800">⚠️ Warning</p>
+              <p class="text-xs text-orange-700">This student has ${absences} absences. Only 2 remaining allowed absences.</p>
+            </div>
+          </div>
+        `;
+        warningDiv.classList.remove('hidden');
+      } else {
+        warningDiv.classList.add('hidden');
+      }
+      
+      openModal();
+    });
+  });
 
   // Start Class Modal
   const startClassBtn = document.getElementById('startClassBtn');
@@ -313,5 +501,13 @@
       }
     });
   }
+
+  // Close modals with ESC key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (modal && !modal.classList.contains('hidden')) closeModal();
+      if (startClassModal && !startClassModal.classList.contains('hidden')) closeStartClassModalFunc();
+    }
+  });
 </script>
 {% endblock %}

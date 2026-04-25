@@ -16,4 +16,8 @@ urlpatterns = [
     path('api/clear-pending-rfid/', views.clear_pending_rfid, name='clear_pending_rfid'),
     path('api/cancel-pending-registration/', views.cancel_pending_registration, name='cancel_pending_registration'),
     path('api/session-attendance/<int:session_id>/', views.get_session_attendance, name='session_attendance'),
+    path('api/student-attendance-history/<int:student_id>/<int:class_id>/', views.get_student_attendance_history, name='student_attendance_history'),
+
+    path('api/activity-log/', views.get_activity_log, name='activity_log'),
+    path('api/update-attendance-status/', views.update_attendance_status, name='update_attendance_status'),
 ]
