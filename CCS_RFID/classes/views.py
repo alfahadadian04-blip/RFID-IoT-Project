@@ -3,12 +3,12 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, FileResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_GET, require_POST
 from django.utils import timezone
 from datetime import datetime, time, timedelta
-from .models import Class, Enrollment, ClassSession, Attendance
+from .models import Class, Enrollment, ClassSession, Attendance, ClassPDFReport
 from CCS.models import User, PendingRFID
 from CCS.forms import AdminLoginForm, StudentLoginForm, AdminRegistrationForm, StudentRegistrationForm
 import traceback
@@ -887,29 +887,30 @@ def end_class_session(request, session_id):
             present_count = all_attendances.filter(status='present').count()
             absent_count = all_attendances.filter(status='absent').count()
             
-            # Check if PDF generation is requested
-            generate_pdf = request.POST.get('generate_pdf', False) or request.GET.get('pdf', False)
+            # Prepare attendance data for PDF (always save to database)
+            attendance_data = []
+            for enrollment in enrollments:
+                student = enrollment.student
+                attendance = all_attendances.filter(student=student).first()
+                
+                is_present = attendance and attendance.status == 'present'
+                
+                attendance_data.append({
+                    'student_id': student.student_id if hasattr(student, 'student_id') else 'N/A',
+                    'name': student.get_full_name(),
+                    'email': student.email,
+                    'course': getattr(student, 'course', 'N/A'),
+                    'status': 'Present' if is_present else 'Absent',
+                    'time_in': attendance.time_in.strftime('%I:%M %p') if attendance and attendance.time_in and is_present else '—'
+                })
             
-            if generate_pdf:
-                # Prepare attendance data for PDF
-                attendance_data = []
-                for enrollment in enrollments:
-                    student = enrollment.student
-                    attendance = all_attendances.filter(student=student).first()
-                    
-                    is_present = attendance and attendance.status == 'present'
-                    
-                    attendance_data.append({
-                        'student_id': student.student_id if hasattr(student, 'student_id') else 'N/A',
-                        'name': student.get_full_name(),
-                        'email': student.email,
-                        'course': getattr(student, 'course', 'N/A'),
-                        'status': 'Present' if is_present else 'Absent',
-                        'time_in': attendance.time_in.strftime('%I:%M %p') if attendance and attendance.time_in and is_present else '—'
-                    })
+            attendance_data.sort(key=lambda x: (x['status'] != 'Present', x['name']))
+            
+            # ALWAYS generate and save PDF to database (regardless of download option)
+            try:
+                from django.core.files.base import ContentFile
                 
-                attendance_data.sort(key=lambda x: (x['status'] != 'Present', x['name']))
-                
+                # Generate PDF content
                 pdf_content = generate_attendance_pdf(
                     session.class_obj, 
                     session, 
@@ -918,18 +919,69 @@ def end_class_session(request, session_id):
                     absent_count
                 )
                 
-                filename = f"Attendance_{session.class_obj.subject_code}_{session.start_time.strftime('%Y%m%d_%H%M')}.pdf"
+                # Create filename
+                filename = f"attendance_{session.class_obj.subject_code}_{session.start_time.strftime('%Y%m%d_%H%M%S')}.pdf"
+                
+                # Check if PDF already exists for this session
+                existing_report = ClassPDFReport.objects.filter(session=session).first()
+                
+                if existing_report:
+                    # Update existing report
+                    existing_report.filename = filename
+                    existing_report.file_size = len(pdf_content)
+                    existing_report.total_students = len(attendance_data)
+                    existing_report.present_count = present_count
+                    existing_report.absent_count = absent_count
+                    existing_report.attendance_rate = int((present_count/len(attendance_data))*100) if len(attendance_data) > 0 else 0
+                    
+                    # Delete old file and save new one
+                    if existing_report.pdf_file:
+                        existing_report.pdf_file.delete()
+                    existing_report.pdf_file.save(filename, ContentFile(pdf_content))
+                    existing_report.save()
+                    print(f"✅ PDF updated in database: {filename}")
+                else:
+                    # Create new PDF report record
+                    pdf_report = ClassPDFReport.objects.create(
+                        session=session,
+                        class_obj=session.class_obj,
+                        teacher=request.user,
+                        filename=filename,
+                        file_size=len(pdf_content),
+                        total_students=len(attendance_data),
+                        present_count=present_count,
+                        absent_count=absent_count,
+                        attendance_rate=int((present_count/len(attendance_data))*100) if len(attendance_data) > 0 else 0
+                    )
+                    
+                    # Save the PDF file
+                    pdf_report.pdf_file.save(filename, ContentFile(pdf_content))
+                    print(f"✅ PDF saved to database: {filename}")
+                
+            except Exception as e:
+                print(f"Error saving PDF to database: {e}")
+                import traceback
+                traceback.print_exc()
+            
+            # Check if PDF download is requested
+            generate_pdf = request.POST.get('generate_pdf', False) or request.GET.get('pdf', False)
+            
+            if generate_pdf:
+                # Return PDF for download
                 response = HttpResponse(pdf_content, content_type='application/pdf')
-                response['Content-Disposition'] = f'attachment; filename="{filename}"'
+                response['Content-Disposition'] = f'attachment; filename="Attendance_{session.class_obj.subject_code}_{session.start_time.strftime("%Y%m%d_%H%M")}.pdf"'
                 return response
             
+            # Return JSON for AJAX request (no PDF download)
             return JsonResponse({
                 'success': True,
                 'present_count': present_count,
                 'absent_count': absent_count,
                 'total_students': enrollments.count(),
                 'warnings': warning_students,
-                'dropped': dropped_students
+                'dropped': dropped_students,
+                'pdf_saved': True,
+                'message': 'Class session ended and attendance report saved to history.'
             })
             
         except ClassSession.DoesNotExist:
@@ -963,6 +1015,7 @@ def active_class_session(request, class_id):
                 'id': enrollment.student.id,
                 'name': enrollment.student.get_full_name(),
                 'student_id': enrollment.student.student_id if hasattr(enrollment.student, 'student_id') else '',
+                'email': enrollment.student.email,
                 'status': attendance.status if attendance else 'Not yet tapped',
                 'time_in': attendance.time_in.strftime('%I:%M %p') if attendance and attendance.time_in else None,
             })
@@ -1070,170 +1123,6 @@ def logout_view(request):
     messages.success(request, 'You have been logged out successfully.')
     return redirect('adminLogin')
 
-def generate_attendance_pdf(class_obj, session, attendance_data, present_count, absent_count):
-    """Generate PDF report for attendance"""
-    
-    # Create buffer for PDF
-    buffer = io.BytesIO()
-    
-    # Create PDF document (landscape for better table display)
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), 
-                           rightMargin=72, leftMargin=72,
-                           topMargin=72, bottomMargin=72)
-    
-    styles = getSampleStyleSheet()
-    elements = []
-    
-    # Custom styles
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=24,
-        textColor=colors.HexColor('#5A1219'),
-        alignment=TA_CENTER,
-        spaceAfter=30
-    )
-    
-    subtitle_style = ParagraphStyle(
-        'CustomSubtitle',
-        parent=styles['Normal'],
-        fontSize=12,
-        alignment=TA_CENTER,
-        textColor=colors.grey,
-        spaceAfter=20
-    )
-    
-    header_style = ParagraphStyle(
-        'CustomHeader',
-        parent=styles['Normal'],
-        fontSize=11,
-        textColor=colors.white,
-        alignment=TA_CENTER
-    )
-    
-    # Title
-    title = Paragraph(f"Attendance Report - {class_obj.subject_description}", title_style)
-    elements.append(title)
-    
-    # Class details
-    class_details = f"""
-    <b>Subject Code:</b> {class_obj.subject_code}<br/>
-    <b>Section:</b> {class_obj.section if class_obj.section else 'N/A'}<br/>
-    <b>Room:</b> {class_obj.room if class_obj.room else 'TBA'}<br/>
-    <b>Schedule:</b> {class_obj.day if class_obj.day else 'TBA'} | {class_obj.time_from.strftime('%I:%M %p') if class_obj.time_from else 'N/A'} - {class_obj.time_to.strftime('%I:%M %p') if class_obj.time_to else 'N/A'}<br/>
-    <b>School Year:</b> {class_obj.school_year if class_obj.school_year else 'N/A'}<br/>
-    <b>Semester:</b> {class_obj.semester if class_obj.semester else 'N/A'}
-    """
-    
-    details_paragraph = Paragraph(class_details, subtitle_style)
-    elements.append(details_paragraph)
-    elements.append(Spacer(1, 10))
-    
-    # Session info
-    session_info = f"""
-    <b>Session Date:</b> {session.start_time.strftime('%B %d, %Y')}<br/>
-    <b>Start Time:</b> {session.start_time.strftime('%I:%M %p')}<br/>
-    <b>End Time:</b> {session.end_time.strftime('%I:%M %p') if session.end_time else 'Ongoing'}<br/>
-    <b>Total Students:</b> {len(attendance_data)}<br/>
-    <b>Present:</b> {present_count} ({int(present_count/len(attendance_data)*100) if len(attendance_data) > 0 else 0}%)<br/>
-    <b>Absent:</b> {absent_count} ({int(absent_count/len(attendance_data)*100) if len(attendance_data) > 0 else 0}%)
-    """
-    
-    session_paragraph = Paragraph(session_info, subtitle_style)
-    elements.append(session_paragraph)
-    elements.append(Spacer(1, 20))
-    
-    # Prepare table data
-    table_data = []
-    
-    # Table header
-    headers = ['#', 'Student ID', 'Student Name', 'Course', 'Status', 'Time In']
-    table_data.append([Paragraph(h, header_style) for h in headers])
-    
-    # Table rows
-    for idx, student in enumerate(attendance_data, 1):
-        row = [
-            str(idx),
-            student.get('student_id', 'N/A'),
-            student.get('name', 'N/A'),
-            student.get('course', 'N/A'),
-            student.get('status', 'Absent'),
-            student.get('time_in', '—')
-        ]
-        table_data.append(row)
-    
-    # Create table
-    table = Table(table_data, repeatRows=1)
-    
-    # Table styling
-    table.setStyle(TableStyle([
-        # Header styling
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#5A1219')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('TOPPADDING', (0, 0), (-1, 0), 12),
-        
-        # Body styling
-        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 1), (-1, -1), 9),
-        ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
-        ('TOPPADDING', (0, 1), (-1, -1), 8),
-        
-        # Grid styling
-        ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#E5E7EB')),
-        ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#D1D5DB')),
-        
-        # Alternating row colors
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F9FAFB')]),
-        
-        # Status column specific styling
-        ('TEXTCOLOR', (4, 1), (4, -1), colors.HexColor('#059669')),
-        ('FONTNAME', (4, 1), (4, -1), 'Helvetica-Bold'),
-    ]))
-    
-    # Color code status column based on value
-    for i, row in enumerate(table_data[1:], start=1):
-        status = row[4]
-        if 'present' in status.lower():
-            table.setStyle(TableStyle([
-                ('TEXTCOLOR', (4, i), (4, i), colors.HexColor('#059669')),
-                ('FONTNAME', (4, i), (4, i), 'Helvetica-Bold'),
-            ]))
-        elif 'absent' in status.lower():
-            table.setStyle(TableStyle([
-                ('TEXTCOLOR', (4, i), (4, i), colors.HexColor('#DC2626')),
-                ('FONTNAME', (4, i), (4, i), 'Helvetica-Bold'),
-            ]))
-    
-    elements.append(table)
-    
-    # Add footer with generation timestamp
-    elements.append(Spacer(1, 30))
-    footer_text = f"Report generated on: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}"
-    footer_style = ParagraphStyle(
-        'Footer',
-        parent=styles['Normal'],
-        fontSize=8,
-        textColor=colors.grey,
-        alignment=TA_CENTER
-    )
-    footer = Paragraph(footer_text, footer_style)
-    elements.append(footer)
-    
-    # Build PDF
-    doc.build(elements)
-    
-    # Get PDF content
-    pdf_content = buffer.getvalue()
-    buffer.close()
-    
-    return pdf_content
 
 def generate_attendance_pdf(class_obj, session, attendance_data, present_count, absent_count):
     """Generate PDF report for attendance"""
@@ -1356,10 +1245,6 @@ def generate_attendance_pdf(class_obj, session, attendance_data, present_count, 
         
         # Alternating row colors
         ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F9FAFB')]),
-        
-        # Status column specific styling
-        ('TEXTCOLOR', (4, 1), (4, -1), colors.HexColor('#059669')),
-        ('FONTNAME', (4, 1), (4, -1), 'Helvetica-Bold'),
     ]))
     
     # Color code status column based on value
@@ -1400,52 +1285,6 @@ def generate_attendance_pdf(class_obj, session, attendance_data, present_count, 
     
     return pdf_content
 
-from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods, require_GET, require_POST
-import json
-
-# Add this function to your views.py
-@require_http_methods(["GET"])
-def get_session_attendance(request, session_id):
-    """API endpoint to get current attendance status for a session"""
-    try:
-        session = ClassSession.objects.get(id=session_id)
-        
-        # Get all attendances for this session
-        attendances = Attendance.objects.filter(session=session).select_related('student')
-        
-        # Get all students enrolled in this class
-        enrollments = Enrollment.objects.filter(class_obj=session.class_obj).select_related('student')
-        
-        # Build attendance data
-        attendance_data = []
-        for att in attendances:
-            attendance_data.append({
-                'student_id': str(att.student.id),
-                'student_name': att.student.get_full_name(),
-                'time_in': att.time_in.strftime('%I:%M %p') if att.time_in else 'N/A'
-            })
-        
-        # Return JSON response
-        return JsonResponse({
-            'success': True,
-            'present_count': attendances.count(),
-            'total_students': enrollments.count(),
-            'attendance_rate': round((attendances.count() / enrollments.count()) * 100) if enrollments.count() > 0 else 0,
-            'new_attendance': attendance_data,
-            'all_attendance_ids': [str(a.student.id) for a in attendances]  # Send all present student IDs
-        })
-        
-    except ClassSession.DoesNotExist:
-        return JsonResponse({
-            'success': False,
-            'error': 'Session not found'
-        }, status=404)
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': str(e)
-        }, status=500)
 
 # ============================================
 # ATTENDANCE HISTORY API
@@ -1504,6 +1343,7 @@ def get_student_attendance_history(request, student_id, class_id):
         import traceback
         traceback.print_exc()
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
 
 @login_required
 def get_activity_log(request):
@@ -1576,3 +1416,87 @@ def update_attendance_status(request):
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
     
     return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=400)
+
+
+@login_required
+def get_session_attendance_api(request, session_id):
+    """API endpoint to get attendance updates for a session"""
+    try:
+        session = ClassSession.objects.get(id=session_id)
+        attendances = Attendance.objects.filter(session=session).select_related('student')
+        
+        attendance_list = []
+        for attendance in attendances:
+            # Convert to local time for display
+            local_time = attendance.time_in
+            attendance_list.append({
+                'student_id': attendance.student.id,
+                'student_name': attendance.student.get_full_name(),
+                'time_in': local_time.strftime('%I:%M %p'),
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'present_count': attendances.count(),
+            'attendance_rate': int((attendances.count() / session.class_obj.total_students) * 100) if session.class_obj.total_students > 0 else 0,
+            'attendance_list': attendance_list
+        })
+    except ClassSession.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Session not found'}, status=404)
+
+
+# ============================================
+# PDF REPORT MANAGEMENT VIEWS
+# ============================================
+@login_required
+def view_pdf_reports(request, class_id):
+    """View all PDF reports for a specific class"""
+    try:
+        class_obj = Class.objects.get(id=class_id, teacher=request.user)
+        reports = ClassPDFReport.objects.filter(class_obj=class_obj, teacher=request.user)
+        
+        context = {
+            'class': class_obj,
+            'reports': reports,
+            'total_reports': reports.count()
+        }
+        return render(request, 'pdf_reports.html', context)
+    except Class.DoesNotExist:
+        messages.error(request, 'Class not found')
+        return redirect('classes')
+
+
+@login_required
+def download_pdf_report(request, report_id):
+    """Download a specific PDF report"""
+    try:
+        report = ClassPDFReport.objects.get(id=report_id, teacher=request.user)
+        
+        if not report.pdf_file:
+            return JsonResponse({'error': 'PDF file not found'}, status=404)
+        
+        # Serve the file
+        response = FileResponse(report.pdf_file, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{report.filename}"'
+        return response
+        
+    except ClassPDFReport.DoesNotExist:
+        raise Http404("PDF report not found")
+
+
+@login_required
+def delete_pdf_report(request, report_id):
+    """Delete a PDF report"""
+    if request.method == 'DELETE':
+        try:
+            report = ClassPDFReport.objects.get(id=report_id, teacher=request.user)
+            # Delete the physical file
+            if report.pdf_file:
+                report.pdf_file.delete()
+            report.delete()
+            return JsonResponse({'success': True, 'message': 'PDF report deleted successfully'})
+        except ClassPDFReport.DoesNotExist:
+            return JsonResponse({'error': 'PDF report not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Method not allowed'}, status=400)

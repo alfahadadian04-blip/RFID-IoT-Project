@@ -29,12 +29,23 @@
         </p>
       </div>
       
-      <button id="startClassBtn" class="inline-flex items-center gap-2 px-6 py-3 bg-green-600 rounded-lg text-white text-sm font-semibold border border-white/10 hover:bg-green-700 transition-colors shadow-md">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-          <polygon points="5 3 19 12 5 21 5 3"/>
-        </svg>
-        Start Class
-      </button>
+      <div class="flex gap-3">
+        <a href="{% url 'pdf_reports' class.id %}" 
+           class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 rounded-lg text-white text-sm font-semibold
+                  border border-white/10 hover:bg-blue-700 transition-colors shadow-md">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+          </svg>
+          PDF History
+        </a>
+        
+        <button id="startClassBtn" class="inline-flex items-center gap-2 px-6 py-3 bg-green-600 rounded-lg text-white text-sm font-semibold border border-white/10 hover:bg-green-700 transition-colors shadow-md">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          Start Class
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -104,7 +115,8 @@
                 <p class="text-xs text-gray-500 student-email hidden md:block">{{ student.email }}</p>
               </div>
             </div>
-          </td>
+           </div>
+           </td>
           <td class="px-3 md:px-5 py-3 text-sm text-gray-600 student-id">{{ student.student_id }}</td>
           <td class="px-3 md:px-5 py-3 text-sm text-gray-600 student-gender">{{ student.gender }}</td>
           <td class="px-3 md:px-5 py-3 student-status">

@@ -143,3 +143,32 @@ class Attendance(models.Model):
     @property
     def date_formatted(self):
         return self.time_in.strftime('%B %d, %Y')
+    
+class ClassPDFReport(models.Model):
+    """Store generated PDF reports for class sessions"""
+    session = models.ForeignKey(ClassSession, on_delete=models.CASCADE, related_name='pdf_reports')
+    class_obj = models.ForeignKey(Class, on_delete=models.CASCADE, related_name='pdf_reports')
+    teacher = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'user_type': 'admin'})
+    pdf_file = models.FileField(upload_to='attendance_reports/%Y/%m/%d/', max_length=500)
+    filename = models.CharField(max_length=255)
+    file_size = models.IntegerField(default=0)  # Size in bytes
+    generated_at = models.DateTimeField(auto_now_add=True)
+    total_students = models.IntegerField(default=0)
+    present_count = models.IntegerField(default=0)
+    absent_count = models.IntegerField(default=0)
+    attendance_rate = models.FloatField(default=0)
+    
+    class Meta:
+        ordering = ['-generated_at']
+        verbose_name_plural = "Class PDF Reports"
+    
+    def __str__(self):
+        return f"{self.class_obj.subject_code} - {self.generated_at.strftime('%Y-%m-%d %H:%M')}"
+    
+    @property
+    def file_size_kb(self):
+        return f"{self.file_size / 1024:.1f} KB"
+    
+    @property
+    def formatted_date(self):
+        return self.generated_at.strftime('%B %d, %Y at %I:%M %p')

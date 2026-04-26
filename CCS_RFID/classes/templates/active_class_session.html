@@ -152,7 +152,7 @@
             </svg>
             <div class="text-left">
               <p class="font-semibold text-gray-800">End & Download PDF Report</p>
-              <p class="text-xs text-gray-500">Generate and download attendance report</p>
+              <p class="text-xs text-gray-500">Generate, save, and download attendance report</p>
             </div>
           </div>
           <svg class="w-5 h-5 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
@@ -167,7 +167,7 @@
             </svg>
             <div class="text-left">
               <p class="font-semibold text-gray-800">End Without PDF</p>
-              <p class="text-xs text-gray-500">Just end the session, no report</p>
+              <p class="text-xs text-gray-500">Save report to history only (no download)</p>
             </div>
           </div>
           <svg class="w-5 h-5 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
@@ -293,7 +293,7 @@
         <tr><td><strong>Subject Description:</strong></td><td id="pdfSubjectDesc"></td></tr>
         <tr><td><strong>Room:</strong></td><td id="pdfRoom"></td></tr>
         <tr><td><strong>Instructor:</strong></td><td id="pdfInstructor"></td></tr>
-       </table>
+      </table>
     </div>
     
     <div style="margin-bottom: 20px;">
@@ -367,7 +367,7 @@
     }
     
     modal.classList.add('active');
-    setTimeout(() => closeModal(), 3000);
+    setTimeout(() => closeModal(), 4000);
   }
   
   function closeModal() {
@@ -408,11 +408,19 @@
   }
   
   function updateStudentToPresent(studentId, studentName, timeIn) {
+    console.log(`Updating student ${studentName} (ID: ${studentId}) to present at ${timeIn}`);
     const rows = document.querySelectorAll('#attendanceTableBody tr');
     for (let row of rows) {
-      if (row.getAttribute('data-student-id') == studentId) {
-        row.querySelector('.status-cell').innerHTML = '<span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">✅ Present</span>';
-        row.querySelector('.time-cell').textContent = timeIn;
+      const rowStudentId = row.getAttribute('data-student-id');
+      if (rowStudentId === studentId) {
+        const statusCell = row.querySelector('.status-cell');
+        const timeCell = row.querySelector('.time-cell');
+        if (statusCell) {
+          statusCell.innerHTML = '<span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">✅ Present</span>';
+        }
+        if (timeCell) {
+          timeCell.textContent = timeIn;
+        }
         row.classList.add('student-row-present');
         return true;
       }
@@ -424,29 +432,45 @@
     if (!pollingActive) return;
     
     try {
+      console.log('Polling for attendance updates...');
       const response = await fetch(`/api/session-attendance/${SESSION_ID}/`, {
         method: 'GET',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        headers: { 
+          'X-Requested-With': 'XMLHttpRequest',
+          'Content-Type': 'application/json'
+        }
       });
+      
+      console.log('Polling response status:', response.status);
       
       if (response.ok) {
         const data = await response.json();
+        console.log('Attendance data received:', data);
         
         if (data.success) {
+          // Update stats
           document.getElementById('presentCount').textContent = data.present_count;
           document.getElementById('attendanceRate').textContent = data.attendance_rate;
           
-          if (data.new_attendance && data.new_attendance.length > 0) {
-            for (const attendance of data.new_attendance) {
-              if (!notifiedStudentIds.has(attendance.student_id)) {
-                notifiedStudentIds.add(attendance.student_id);
-                if (updateStudentToPresent(attendance.student_id, attendance.student_name, attendance.time_in)) {
+          // Check for new attendance records
+          if (data.attendance_list && data.attendance_list.length > 0) {
+            for (const attendance of data.attendance_list) {
+              const studentId = attendance.student_id.toString();
+              if (!notifiedStudentIds.has(studentId)) {
+                notifiedStudentIds.add(studentId);
+                console.log(`New attendance detected for: ${attendance.student_name}`);
+                // Update the UI
+                if (updateStudentToPresent(studentId, attendance.student_name, attendance.time_in)) {
                   showModal('success', 'Attendance Recorded!', `${attendance.student_name} is now present.`, attendance.time_in);
                 }
               }
             }
           }
+        } else {
+          console.error('API returned success=false:', data);
         }
+      } else {
+        console.error('Polling failed with status:', response.status);
       }
     } catch (error) {
       console.error('Fetch error:', error);
@@ -485,7 +509,7 @@
     }, 2000);
   }
   
-  // End class without PDF
+  // End class without PDF (still saves to history)
   async function endClassWithoutPdf() {
     showLoading();
     if (pollInterval) clearInterval(pollInterval);
@@ -508,10 +532,13 @@
         if (data.warnings && data.warnings.length > 0) {
           showWarnings(data.warnings);
         }
-        showModal('success', 'Session Ended!', `Present: ${data.present_count} | Absent: ${data.absent_count} | Total: ${data.total_students}`);
+        // Updated message to show PDF was saved to history
+        showModal('success', 'Session Ended!', 
+          `✅ Present: ${data.present_count} | ❌ Absent: ${data.absent_count} | 📊 Total: ${data.total_students}\n\n📄 Attendance report has been automatically saved to PDF History.`,
+          null);
         setTimeout(() => {
           window.location.href = `/view_class/?class_id=${CLASS_ID}`;
-        }, 3000);
+        }, 4000);
       } else {
         showModal('error', 'Error', data.error || 'Failed to end session');
         pollingActive = true;
@@ -543,20 +570,34 @@
     pdfOptionsModal.classList.remove('flex');
   }
   
-  endClassBtn.addEventListener('click', showPdfOptionsModal);
-  endWithPdfBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    hidePdfOptionsModal();
-    endClassWithPdf();
-  });
-  endWithoutPdfBtn.addEventListener('click', () => {
-    hidePdfOptionsModal();
-    endClassWithoutPdf();
-  });
-  cancelEndClassBtn.addEventListener('click', hidePdfOptionsModal);
-  pdfOptionsModal.addEventListener('click', (e) => {
-    if (e.target === pdfOptionsModal) hidePdfOptionsModal();
-  });
+  if (endClassBtn) {
+    endClassBtn.addEventListener('click', showPdfOptionsModal);
+  }
+  
+  if (endWithPdfBtn) {
+    endWithPdfBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      hidePdfOptionsModal();
+      endClassWithPdf();
+    });
+  }
+  
+  if (endWithoutPdfBtn) {
+    endWithoutPdfBtn.addEventListener('click', () => {
+      hidePdfOptionsModal();
+      endClassWithoutPdf();
+    });
+  }
+  
+  if (cancelEndClassBtn) {
+    cancelEndClassBtn.addEventListener('click', hidePdfOptionsModal);
+  }
+  
+  if (pdfOptionsModal) {
+    pdfOptionsModal.addEventListener('click', (e) => {
+      if (e.target === pdfOptionsModal) hidePdfOptionsModal();
+    });
+  }
   
   function initializeNotifiedStudents() {
     document.querySelectorAll('#attendanceTableBody tr .status-cell span').forEach(span => {
@@ -565,11 +606,13 @@
         if (studentId) notifiedStudentIds.add(studentId);
       }
     });
+    console.log('Initialized notified students:', Array.from(notifiedStudentIds));
   }
   
+  // Start polling
   initializeNotifiedStudents();
   fetchAttendanceUpdates();
-  pollInterval = setInterval(fetchAttendanceUpdates, 2000);
+  pollInterval = setInterval(fetchAttendanceUpdates, 3000);
   console.log('Attendance monitoring started...');
 </script>
 {% endblock %}

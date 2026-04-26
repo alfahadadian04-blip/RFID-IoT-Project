@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}PDF Reports - {{ class.subject_code }}{% endblock %}
+
+{% block content %}
+<style>
+    .report-card {
+        transition: all 0.3s ease;
+    }
+    .report-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+    .delete-btn {
+        transition: all 0.2s ease;
+    }
+    .delete-btn:hover {
+        transform: scale(1.05);
+    }
+    .modal {
+        transition: all 0.3s ease;
+    }
+</style>
+
+<!-- Header Banner -->
+<div class="relative rounded-2xl overflow-hidden mb-5 bg-blue-700 shadow-lg">
+    <div class="relative z-10 p-6 md:p-7">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <div class="flex items-center gap-2 mb-1">
+                    <a href="{% url 'view_class' %}?class_id={{ class.id }}" 
+                       class="text-white/60 hover:text-white transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <polyline points="15 18 9 12 15 6"/>
+                        </svg>
+                    </a>
+                    <h1 class="text-white text-2xl md:text-3xl font-bold tracking-tight">
+                        PDF Reports - {{ class.subject_code }}
+                    </h1>
+                </div>
+                <p class="text-white/70 text-sm font-medium mb-1">
+                    {{ class.subject_description|default:"Subject Description" }}
+                </p>
+                <p class="text-white/50 text-xs">
+                    Total Reports: {{ total_reports }}
+                </p>
+            </div>
+            <a href="{% url 'view_class' %}?class_id={{ class.id }}" 
+               class="inline-flex items-center gap-2 px-6 py-3 bg-white/10 rounded-lg text-white text-sm font-semibold
+                      border border-white/20 hover:bg-white/20 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M3 12h18M12 3v18"/>
+                </svg>
+                Back to Class
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-5">
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-2">Total Reports</p>
+                <p class="text-2xl font-bold text-gray-800">{{ total_reports }}</p>
+            </div>
+            <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-2">Total Size</p>
+                <p class="text-2xl font-bold text-gray-800" id="totalSize">--</p>
+            </div>
+            <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M20 12H4M12 4v16"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-2">Avg. Attendance</p>
+                <p class="text-2xl font-bold text-gray-800" id="avgAttendance">--%</p>
+            </div>
+            <div class="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-2">Latest Report</p>
+                <p class="text-sm font-bold text-gray-800" id="latestDate">--</p>
+            </div>
+            <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reports List -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-gray-700 tracking-wide">Generated Reports</h2>
+        <div class="flex items-center gap-3">
+            <div class="relative">
+                <input type="text" id="searchReports" placeholder="Search reports..." 
+                       class="pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                <svg class="w-4 h-4 text-gray-400 absolute left-2 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    {% if reports %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+            {% for report in reports %}
+            <div class="report-card bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow" data-report-date="{{ report.generated_at|date:'Y-m-d' }}">
+                <div class="bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-3 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                            </svg>
+                            <h3 class="font-semibold text-gray-800 text-sm">{{ report.filename|truncatechars:30 }}</h3>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="downloadReport({{ report.id }})" 
+                                    class="text-blue-600 hover:text-blue-800 transition-colors"
+                                    title="Download">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                </svg>
+                            </button>
+                            <button onclick="deleteReport({{ report.id }}, '{{ report.filename|escapejs }}')" 
+                                    class="text-red-600 hover:text-red-800 transition-colors delete-btn"
+                                    title="Delete">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-4">
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <p class="text-xs text-gray-500 mb-1">Session Date</p>
+                            <p class="text-sm font-medium text-gray-700">{{ report.session.start_time|date:"M d, Y" }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 mb-1">Generated</p>
+                            <p class="text-sm font-medium text-gray-700">{{ report.generated_at|date:"M d, Y g:i A" }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-3 gap-2 mb-3 pt-2 border-t border-gray-100">
+                        <div class="text-center">
+                            <p class="text-xs text-gray-500 mb-1">Total</p>
+                            <p class="text-lg font-bold text-gray-800">{{ report.total_students }}</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-xs text-gray-500 mb-1">Present</p>
+                            <p class="text-lg font-bold text-green-600">{{ report.present_count }}</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-xs text-gray-500 mb-1">Rate</p>
+                            <p class="text-lg font-bold text-blue-600">{{ report.attendance_rate|floatformat:0 }}%</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
+                        <span>Size: {{ report.file_size_kb }}</span>
+                        <span class="flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                            {{ report.generated_at|time:"g:i A" }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-12">
+            <svg class="w-24 h-24 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+            </svg>
+            <h3 class="text-lg font-semibold text-gray-600 mb-2">No PDF Reports Yet</h3>
+            <p class="text-gray-500 text-sm mb-4">No attendance reports have been generated for this class yet.</p>
+            <a href="{% url 'view_class' %}?class_id={{ class.id }}" 
+               class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M3 12h18M12 3v18"/>
+                </svg>
+                Go to Class
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 modal">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">Delete PDF Report</h3>
+        </div>
+        <div class="px-6 py-4">
+            <p class="text-gray-700 mb-4">Are you sure you want to delete this PDF report?</p>
+            <p class="text-sm text-gray-500 mb-4" id="deleteFilename"></p>
+            <div class="bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded">
+                <p class="text-xs text-yellow-700">⚠️ This action cannot be undone.</p>
+            </div>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+            <button id="cancelDeleteBtn" class="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-200">
+                Cancel
+            </button>
+            <button id="confirmDeleteBtn" class="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700">
+                Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentDeleteId = null;
+    
+    // Calculate and display statistics
+    function calculateStats() {
+        const reports = document.querySelectorAll('.report-card');
+        let totalSize = 0;
+        let totalAttendance = 0;
+        let latestDate = null;
+        
+        reports.forEach(report => {
+            // Get size from text
+            const sizeText = report.querySelector('.text-xs.text-gray-500:first-child')?.textContent || '';
+            const sizeMatch = sizeText.match(/(\d+\.?\d*)/);
+            if (sizeMatch) totalSize += parseFloat(sizeMatch[0]);
+            
+            // Get attendance rate
+            const rateElement = report.querySelector('.text-lg.font-bold.text-blue-600');
+            if (rateElement) {
+                const rate = parseFloat(rateElement.textContent);
+                if (!isNaN(rate)) totalAttendance += rate;
+            }
+            
+            // Get latest date
+            const dateElement = report.querySelector('.text-sm.font-medium.text-gray-700');
+            if (dateElement && dateElement.textContent) {
+                const reportDate = new Date(dateElement.textContent);
+                if (!latestDate || reportDate > latestDate) latestDate = reportDate;
+            }
+        });
+        
+        const avgAttendance = reports.length > 0 ? (totalAttendance / reports.length).toFixed(1) : 0;
+        document.getElementById('totalSize').textContent = totalSize.toFixed(1) + ' KB';
+        document.getElementById('avgAttendance').textContent = avgAttendance + '%';
+        
+        if (latestDate) {
+            document.getElementById('latestDate').textContent = latestDate.toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric', 
+                year: 'numeric' 
+            });
+        } else {
+            document.getElementById('latestDate').textContent = '--';
+        }
+    }
+    
+    // Search functionality
+    const searchInput = document.getElementById('searchReports');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function() {
+            const searchTerm = this.value.toLowerCase();
+            const reports = document.querySelectorAll('.report-card');
+            
+            reports.forEach(report => {
+                const filename = report.querySelector('h3')?.textContent.toLowerCase() || '';
+                const date = report.querySelector('.text-sm.font-medium.text-gray-700')?.textContent.toLowerCase() || '';
+                
+                if (filename.includes(searchTerm) || date.includes(searchTerm)) {
+                    report.style.display = '';
+                } else {
+                    report.style.display = 'none';
+                }
+            });
+        });
+    }
+    
+    // Download report
+    function downloadReport(reportId) {
+        window.location.href = `/pdf-report/${reportId}/download/`;
+    }
+    
+    // Delete report
+    function deleteReport(reportId, filename) {
+        currentDeleteId = reportId;
+        document.getElementById('deleteFilename').innerHTML = `<strong>${filename}</strong>`;
+        document.getElementById('deleteModal').classList.remove('hidden');
+        document.getElementById('deleteModal').classList.add('flex');
+    }
+    
+    document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+        if (!currentDeleteId) return;
+        
+        try {
+            const response = await fetch(`/pdf-report/${currentDeleteId}/delete/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Remove the report card
+                const reportToDelete = document.querySelector(`button[onclick="deleteReport(${currentDeleteId}, '")]`)?.closest('.report-card');
+                if (reportToDelete) reportToDelete.remove();
+                
+                // Close modal
+                document.getElementById('deleteModal').classList.add('hidden');
+                document.getElementById('deleteModal').classList.remove('flex');
+                
+                // Recalculate stats
+                calculateStats();
+                
+                // Show success message
+                alert('PDF report deleted successfully');
+                
+                // Reload page if no reports left
+                if (document.querySelectorAll('.report-card').length === 0) {
+                    location.reload();
+                }
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to delete PDF report');
+        }
+        
+        currentDeleteId = null;
+    });
+    
+    document.getElementById('cancelDeleteBtn').addEventListener('click', () => {
+        document.getElementById('deleteModal').classList.add('hidden');
+        document.getElementById('deleteModal').classList.remove('flex');
+        currentDeleteId = null;
+    });
+    
+    // Close modal on outside click
+    document.getElementById('deleteModal').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('deleteModal')) {
+            document.getElementById('deleteModal').classList.add('hidden');
+            document.getElementById('deleteModal').classList.remove('flex');
+            currentDeleteId = null;
+        }
+    });
+    
+    // Initialize stats on page load
+    calculateStats();
+</script>
+{% endblock %}
