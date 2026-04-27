@@ -9,8 +9,190 @@ import json
 
 @login_required
 def dashboard(request):
-    """Teacher dashboard"""
-    return render(request, 'dashboard.html')
+    """Teacher dashboard with real data"""
+    from classes.models import Class, ClassSession, Attendance
+    from django.utils import timezone
+    from datetime import datetime, timedelta
+    
+    # Get all classes for the teacher
+    teacher_classes = Class.objects.filter(teacher=request.user)
+    total_classes = teacher_classes.count()
+    
+    # Calculate total students
+    total_students = sum(c.total_students for c in teacher_classes)
+    
+    # Get today's classes and next upcoming class
+    today = timezone.now().date()
+    current_day = today.strftime('%A').lower()  # e.g., 'tuesday'
+    current_time = timezone.now().time()
+    
+    print(f"Current day: {current_day}")
+    
+    today_classes = []
+    upcoming_classes = []
+    
+    for class_obj in teacher_classes:
+        class_day = class_obj.day.lower()
+        print(f"Class: {class_obj.subject_code}, Day: {class_day}")
+        
+        # Check if today is in the class day string
+        # Class day could be like "M (Lec 2.00) (Lab 0.00)" or "Monday" or "M T W"
+        is_today = False
+        
+        # Full day name match
+        if current_day in class_day:
+            is_today = True
+        # Short day name match (M, T, W, Th, F)
+        elif current_day == 'monday' and 'm' in class_day and 'mon' not in class_day:
+            is_today = True
+        elif current_day == 'tuesday' and 't' in class_day and 'tu' in class_day:
+            is_today = True
+        elif current_day == 'wednesday' and 'w' in class_day:
+            is_today = True
+        elif current_day == 'thursday' and 'th' in class_day:
+            is_today = True
+        elif current_day == 'friday' and 'f' in class_day:
+            is_today = True
+        elif current_day == 'saturday' and 'sa' in class_day:
+            is_today = True
+        elif current_day == 'sunday' and 'su' in class_day:
+            is_today = True
+        
+        if is_today:
+            today_classes.append({
+                'id': class_obj.id,
+                'subject_code': class_obj.subject_code,
+                'subject_description': class_obj.subject_description,
+                'room': class_obj.room,
+                'section': class_obj.section,
+                'time_from': class_obj.time_from,
+                'time_to': class_obj.time_to,
+            })
+        else:
+            upcoming_classes.append(class_obj)
+    
+    # Sort today's classes by time
+    today_classes.sort(key=lambda x: x['time_from'])
+    
+    # Find next upcoming class
+    next_class = None
+    display_classes = today_classes if today_classes else []
+    
+    if not today_classes and upcoming_classes:
+        weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+        today_index = weekdays.index(current_day)
+        
+        upcoming_with_day = []
+        for class_obj in upcoming_classes:
+            class_day_lower = class_obj.day.lower()
+            day_index = -1
+            
+            # Find which day this class is on
+            for idx, day in enumerate(weekdays):
+                if day in class_day_lower:
+                    day_index = idx
+                    break
+                # Check short codes
+                elif idx == 0 and 'm' in class_day_lower and 'mon' not in class_day_lower:
+                    day_index = 0
+                    break
+                elif idx == 1 and 't' in class_day_lower and 'tu' in class_day_lower:
+                    day_index = 1
+                    break
+                elif idx == 2 and 'w' in class_day_lower:
+                    day_index = 2
+                    break
+                elif idx == 3 and 'th' in class_day_lower:
+                    day_index = 3
+                    break
+                elif idx == 4 and 'f' in class_day_lower:
+                    day_index = 4
+                    break
+                elif idx == 5 and 'sa' in class_day_lower:
+                    day_index = 5
+                    break
+                elif idx == 6 and 'su' in class_day_lower:
+                    day_index = 6
+                    break
+            
+            if day_index >= 0:
+                days_until = (day_index - today_index + 7) % 7
+                upcoming_with_day.append({
+                    'class': class_obj,
+                    'days_until': days_until,
+                    'day_index': day_index
+                })
+        
+        if upcoming_with_day:
+            upcoming_with_day.sort(key=lambda x: (x['days_until'], x['class'].time_from))
+            next_class_obj = upcoming_with_day[0]['class']
+            
+            day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+            class_day_index = upcoming_with_day[0]['day_index']
+            day_display = day_names[class_day_index]
+            
+            if upcoming_with_day[0]['days_until'] == 0:
+                day_display = 'Today'
+            elif upcoming_with_day[0]['days_until'] == 1:
+                day_display = 'Tomorrow'
+            elif upcoming_with_day[0]['days_until'] > 1:
+                day_display = f'{day_display} ({upcoming_with_day[0]["days_until"]} days)'
+            
+            next_class = {
+                'id': next_class_obj.id,
+                'subject_code': next_class_obj.subject_code,
+                'subject_description': next_class_obj.subject_description,
+                'room': next_class_obj.room,
+                'section': next_class_obj.section,
+                'time_from': next_class_obj.time_from,
+                'time_to': next_class_obj.time_to,
+                'day_display': day_display
+            }
+            display_classes = [next_class]
+    
+    # Calculate attendance rate
+    total_present = 0
+    total_late = 0
+    total_absent = 0
+    
+    for class_obj in teacher_classes:
+        sessions = ClassSession.objects.filter(class_obj=class_obj)
+        for session in sessions:
+            attendances = Attendance.objects.filter(session=session)
+            total_present += attendances.filter(status='present').count()
+            total_late += attendances.filter(status='late').count()
+            total_absent += attendances.filter(status='absent').count()
+    
+    total_attended = total_present + total_late
+    attendance_rate = int((total_attended / (total_attended + total_absent)) * 100) if (total_attended + total_absent) > 0 else 0
+    
+    # Get total attendance records
+    total_records = Attendance.objects.count()
+    
+    # Get recent activities (last 5)
+    recent_activities = []
+    recent_attendances = Attendance.objects.all().select_related('student', 'session__class_obj').order_by('-time_in')[:5]
+    
+    for attendance in recent_attendances:
+        recent_activities.append({
+            'student_name': attendance.student.get_full_name(),
+            'class_name': attendance.session.class_obj.subject_code if attendance.session else 'N/A',
+            'date': attendance.time_in.strftime('%b %d, %Y'),
+            'time': attendance.time_in.strftime('%I:%M %p'),
+            'status': attendance.status
+        })
+    
+    context = {
+        'total_classes': total_classes,
+        'total_students': total_students,
+        'attendance_rate': attendance_rate,
+        'total_records': total_records,
+        'today_classes': today_classes,
+        'display_classes': display_classes,
+        'next_class': next_class,
+        'recent_activities': recent_activities,
+    }
+    return render(request, 'dashboard.html', context)
 
 
 @login_required
