@@ -18,6 +18,13 @@
         transform: translateY(-2px);
         box-shadow: 0 10px 40px rgba(0,0,0,0.1);
     }
+    .file-input-label {
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .file-input-label:hover {
+        background-color: #f3f4f6;
+    }
 </style>
 
 <div class="container mx-auto px-4 py-6 max-w-5xl">
@@ -31,22 +38,39 @@
         <!-- Profile Sidebar -->
         <div class="lg:col-span-1">
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden sticky top-6">
-                <!-- Avatar Section -->
+                <!-- Avatar Section with Upload -->
                 <div class="bg-gradient-to-r from-maroon to-maroon-dark p-6 text-center">
-                    <div class="profile-avatar w-32 h-32 mx-auto rounded-full bg-white/20 border-4 border-white flex items-center justify-center mb-4">
-                        {% if user.user_type == 'superadmin' %}
-                            <svg class="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-                            </svg>
-                        {% elif user.user_type == 'admin' %}
-                            <svg class="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            </svg>
+                    <div class="relative profile-avatar w-32 h-32 mx-auto mb-4">
+                        {% if user.profile_picture and user.profile_picture.url %}
+                            <img src="{{ user.profile_picture.url }}" alt="{{ user.get_full_name }}" 
+                                 class="w-32 h-32 rounded-full object-cover border-4 border-white">
                         {% else %}
-                            <svg class="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 6.25278V19.2528M12 6.25278C10.8321 5.47686 9.24649 5 7.5 5C5.75351 5 4.16789 5.47686 3 6.25278M12 6.25278C13.1679 5.47686 14.7535 5 16.5 5C18.2465 5 19.8321 5.47686 21 6.25278"/>
-                            </svg>
+                            <div class="w-32 h-32 rounded-full bg-white/20 border-4 border-white flex items-center justify-center">
+                                {% if user.user_type == 'superadmin' %}
+                                    <svg class="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                    </svg>
+                                {% elif user.user_type == 'admin' %}
+                                    <svg class="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    </svg>
+                                {% else %}
+                                    <svg class="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 6.25278V19.2528M12 6.25278C10.8321 5.47686 9.24649 5 7.5 5C5.75351 5 4.16789 5.47686 3 6.25278M12 6.25278C13.1679 5.47686 14.7535 5 16.5 5C18.2465 5 19.8321 5.47686 21 6.25278"/>
+                                    </svg>
+                                {% endif %}
+                            </div>
                         {% endif %}
+                        
+                        <!-- Upload Button -->
+                        <label for="profilePictureInput" 
+                               class="absolute bottom-0 right-0 bg-white rounded-full p-2 cursor-pointer shadow-md file-input-label">
+                            <svg class="w-4 h-4 text-maroon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                <path d="M12 16a3 3 0 100-6 3 3 0 000 6z"/>
+                            </svg>
+                        </label>
+                        <input type="file" id="profilePictureInput" accept="image/*" style="display: none;">
                     </div>
                     <h2 class="text-white text-xl font-semibold">{{ user.get_full_name }}</h2>
                     <p class="text-white/70 text-sm mt-1">
@@ -94,8 +118,12 @@
 
         <!-- Profile Edit Form -->
         <div class="lg:col-span-2">
-            <form method="POST" action="{% url 'profile' %}" id="profileForm">
+            <form method="POST" action="{% url 'profile' %}" id="profileForm" enctype="multipart/form-data">
                 {% csrf_token %}
+                
+                <!-- Hidden fields to ensure values are always sent -->
+                <input type="hidden" name="first_name_hidden" value="{{ user.first_name }}">
+                <input type="hidden" name="last_name_hidden" value="{{ user.last_name }}">
                 
                 <!-- Personal Information -->
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
@@ -106,7 +134,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
-                                <input type="text" name="first_name" value="{{ user.first_name }}" required
+                                <input type="text" name="first_name" value="{{ user.first_name|default:'' }}" required
                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-maroon focus:border-maroon">
                             </div>
                             <div>
@@ -116,7 +144,7 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
-                                <input type="text" name="last_name" value="{{ user.last_name }}" required
+                                <input type="text" name="last_name" value="{{ user.last_name|default:'' }}" required
                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-maroon focus:border-maroon">
                             </div>
                         </div>
@@ -124,7 +152,7 @@
                         {% if user.user_type == 'student' %}
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                            <input type="email" name="email" value="{{ user.email }}" required
+                            <input type="email" name="email" value="{{ user.email|default:'' }}" required
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-maroon focus:border-maroon">
                             <p class="text-xs text-gray-500 mt-1">Only @wmsu.edu.ph email addresses are allowed</p>
                         </div>
@@ -237,6 +265,55 @@
 </div>
 
 <script>
+    // Profile picture upload with AJAX
+    const fileInput = document.getElementById('profilePictureInput');
+    
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Check file size (max 2MB)
+                if (file.size > 2 * 1024 * 1024) {
+                    alert('File is too big! Max 2MB.');
+                    return;
+                }
+                
+                // Check file type
+                if (!file.type.startsWith('image/')) {
+                    alert('Please upload an image file.');
+                    return;
+                }
+                
+                // Create FormData for image upload
+                const formData = new FormData();
+                formData.append('profile_picture', file);
+                formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+                
+                // Send AJAX request for image only
+                fetch(window.location.href, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert(data.error || 'Upload failed');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Upload failed. Please try again.');
+                });
+            }
+        });
+    }
+
+    // Password validation
     document.getElementById('profileForm').addEventListener('submit', function(e) {
         const newPassword = document.getElementById('newPassword').value;
         const confirmPassword = document.getElementById('confirmPassword').value;

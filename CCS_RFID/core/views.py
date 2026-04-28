@@ -753,30 +753,51 @@ def super_activity(request):
 
 @login_required
 def profile(request):
-    """User profile page for all user types"""
+    """User profile page for all user types with picture upload"""
     if request.method == 'POST':
         try:
+            # Check if this is an AJAX file upload
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and 'profile_picture' in request.FILES:
+                request.user.profile_picture = request.FILES['profile_picture']
+                request.user.save()
+                return JsonResponse({'success': True, 'message': 'Profile picture updated!'})
+            
+            # Regular form submission
+            # Get values with fallbacks to prevent None errors
+            first_name = request.POST.get('first_name', '').strip()
+            last_name = request.POST.get('last_name', '').strip()
+            middle_name = request.POST.get('middle_name', '').strip()
+            
+            # Validate required fields
+            if not first_name or not last_name:
+                messages.error(request, 'First name and last name are required.')
+                return redirect('profile')
+            
             # Update personal information
-            request.user.first_name = request.POST.get('first_name')
-            request.user.middle_name = request.POST.get('middle_name', '')
-            request.user.last_name = request.POST.get('last_name')
+            request.user.first_name = first_name
+            request.user.middle_name = middle_name
+            request.user.last_name = last_name
             
             # Student-specific fields
             if request.user.user_type == 'student':
-                request.user.email = request.POST.get('email')
+                email = request.POST.get('email', '').strip()
+                if email:
+                    request.user.email = email
+                
                 dob = request.POST.get('date_of_birth')
                 if dob:
                     request.user.date_of_birth = dob
-                request.user.gender = request.POST.get('gender')
-                request.user.civil_status = request.POST.get('civil_status')
+                
+                request.user.gender = request.POST.get('gender', '')
+                request.user.civil_status = request.POST.get('civil_status', '')
                 request.user.contact_number = request.POST.get('contact_number', '')
                 request.user.contact_person = request.POST.get('contact_person', '')
-                request.user.department = request.POST.get('department')
-                request.user.course = request.POST.get('course')
+                request.user.department = request.POST.get('department', '')
+                request.user.course = request.POST.get('course', '')
             
             # Password change
-            current_password = request.POST.get('current_password')
-            new_password = request.POST.get('new_password')
+            current_password = request.POST.get('current_password', '')
+            new_password = request.POST.get('new_password', '')
             
             if new_password:
                 if not current_password:
@@ -801,5 +822,6 @@ def profile(request):
             
         except Exception as e:
             messages.error(request, f'Error updating profile: {str(e)}')
+            return redirect('profile')
     
     return render(request, 'profile.html', {'user': request.user})

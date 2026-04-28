@@ -93,6 +93,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     # RFID field
     rfid_tag = models.CharField(max_length=50, unique=True, null=True, blank=True)
     
+    # Profile Picture
+    profile_picture = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
+    
     # Personal Information
     first_name = models.CharField(max_length=50)
     middle_name = models.CharField(max_length=50, blank=True)
