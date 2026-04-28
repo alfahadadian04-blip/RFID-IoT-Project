@@ -30,7 +30,7 @@
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 bg-maroon/10 rounded-lg flex items-center justify-center">
           <svg class="w-5 h-5 text-maroon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path d="M12 6v7m0 0v7m0-7h7m-7 0H5"/>
+            <path d="M12 6v7m0 0v7m0-7h7m0-7H5"/>
           </svg>
         </div>
       </div>
@@ -48,7 +48,7 @@
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 bg-maroon/10 rounded-lg flex items-center justify-center">
           <svg class="w-5 h-5 text-maroon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path d="M12 6.25278V19.2528M12 6.25278C10.8321 5.47686 9.24649 5 7.5 5C5.75351 5 4.16789 5.47686 3 6.25278M12 6.25278C13.1679 5.47686 14.7535 5 16.5 5C18.2465 5 19.8321 5.47686 21 6.25278M3 6.25278V19.2528C4.16789 18.4769 5.75351 18 7.5 18C9.24649 18 10.8321 18.4769 12 19.2528M3 6.25278C4.16789 7.0287 5.75351 7.50556 7.5 7.50556C9.24649 7.50556 10.8321 7.0287 12 6.25278"/>
+            <path d="M12 6.25278V19.2528M12 6.25278C10.8321 5.47686 9.24649 5 7.5 5C5.75351 5 4.16789 5.47686 3 6.25278M12 6.25278C13.1679 5.47686 14.7535 5 16.5 5C18.2465 5 19.8321 5.47686 21 6.25278"/>
           </svg>
         </div>
       </div>
@@ -119,22 +119,56 @@
             <svg class="w-4 h-4 text-maroon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
             </svg>
-            <span class="text-gray-700">{{ subject.time_start|default:"TBA" }} - {{ subject.time_end|default:"TBA" }}</span>
+            <span class="text-gray-700">{{ subject.time_start|time:"g:i A"|default:"TBA" }} - {{ subject.time_end|time:"g:i A"|default:"TBA" }}</span>
           </div>
         </div>
         
         <div class="flex items-center gap-3">
           <div class="text-right">
-            <p class="text-sm font-semibold text-gray-800">{{ subject.units|default:"3" }} units</p>
-            <p class="text-xs text-gray-500">Room: {{ subject.room|default:"TBA" }}</p>
+            <p class="text-sm font-semibold text-gray-800">
+              {% if subject.units %}
+                {% if subject.units == 2 %}
+                  2 units
+                {% elif subject.units == 3 %}
+                  3 units
+                {% elif subject.units == 4 %}
+                  4 units
+                {% else %}
+                  {{ subject.units }} units
+                {% endif %}
+              {% else %}
+                3 units
+              {% endif %}
+            </p>
+            <p class="text-xs text-gray-500 mt-1">
+              <span class="font-medium">Room:</span> {{ subject.room|default:"TBA" }}
+            </p>
             {% if subject.status == 'dropped' %}
-              <p class="text-xs text-red-600 font-semibold mt-1">Dropped</p>
+              <p class="text-xs text-red-600 font-semibold mt-1">
+                <span class="inline-flex items-center gap-1">❌ Dropped ({{ subject.absences }}/5 absences)</span>
+              </p>
             {% elif subject.absences >= 4 %}
-              <p class="text-xs text-yellow-600 font-semibold mt-1">⚠️ {{ subject.absences }}/5 absences</p>
+              <p class="text-xs text-yellow-600 font-semibold mt-1">
+                <span class="inline-flex items-center gap-1">⚠️ At Risk ({{ subject.absences }}/5 absences)</span>
+              </p>
             {% endif %}
           </div>
           <div class="w-10 h-10 bg-maroon/10 rounded-lg flex items-center justify-center">
-            <span class="text-maroon font-bold text-sm">{{ subject.units|default:"3" }}</span>
+            <span class="text-maroon font-bold text-sm">
+              {% if subject.units %}
+                {% if subject.units == 2 %}
+                  2
+                {% elif subject.units == 3 %}
+                  3
+                {% elif subject.units == 4 %}
+                  4
+                {% else %}
+                  {{ subject.units|floatformat:0 }}
+                {% endif %}
+              {% else %}
+                3
+              {% endif %}
+            </span>
           </div>
         </div>
       </div>
@@ -169,6 +203,24 @@
     <div class="flex items-center gap-2">
       <div class="w-3 h-3 rounded-full bg-red-600"></div>
       <span class="text-gray-600">Dropped Subjects</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="w-6 h-3 bg-maroon/10 rounded flex items-center justify-center">
+        <span class="text-maroon text-xs font-bold">2</span>
+      </div>
+      <span class="text-gray-600">2 units subject</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="w-6 h-3 bg-maroon/10 rounded flex items-center justify-center">
+        <span class="text-maroon text-xs font-bold">3</span>
+      </div>
+      <span class="text-gray-600">3 units subject</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="w-6 h-3 bg-maroon/10 rounded flex items-center justify-center">
+        <span class="text-maroon text-xs font-bold">4</span>
+      </div>
+      <span class="text-gray-600">4 units subject</span>
     </div>
   </div>
 </div>

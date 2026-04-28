@@ -1,0 +1,561 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Edit Student - {{ student.get_full_name }}{% endblock %}
+
+{% block content %}
+<style>
+  .rfid-modal {
+    backdrop-filter: blur(4px);
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  .animate-pulse {
+    animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+</style>
+
+<div class="container mx-auto px-4 py-6 max-w-4xl">
+    <div class="mb-6">
+        <div class="flex items-center gap-3">
+            <a href="{% url 'user_management' %}" class="text-maroon hover:text-maroon-dark transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+            </a>
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Edit Student</h1>
+        </div>
+        <p class="text-gray-500 text-sm mt-1">Editing: {{ student.get_full_name }} ({{ student.student_id|default:"No Student ID" }})</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <form method="POST" id="editStudentForm">
+            {% csrf_token %}
+            
+            <div class="p-6 space-y-6">
+                <!-- Personal Information -->
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b">Personal Information</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+                            <input type="text" name="first_name" value="{{ student.first_name }}" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-maroon focus:border-maroon">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Middle Name</label>
+                            <input type="text" name="middle_name" value="{{ student.middle_name|default:'' }}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-maroon focus:border-maroon">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+                            <input type="text" name="last_name" value="{{ student.last_name }}" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-maroon focus:border-maroon">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Date of Birth & Gender -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                        <input type="date" name="date_of_birth" value="{{ student.date_of_birth|date:'Y-m-d'|default:'' }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-maroon focus:border-maroon">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                        <select name="gender" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-maroon focus:border-maroon">
+                            <option value="">Select Gender</option>
+                            <option value="Male" {% if student.gender == 'Male' %}selected{% endif %}>Male</option>
+                            <option value="Female" {% if student.gender == 'Female' %}selected{% endif %}>Female</option>
+                            <option value="Prefer not to say" {% if student.gender == 'Prefer not to say' %}selected{% endif %}>Prefer not to say</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Civil Status & Contact -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Civil Status</label>
+                        <select name="civil_status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-maroon focus:border-maroon">
+                            <option value="">Select Status</option>
+                            <option value="Single" {% if student.civil_status == 'Single' %}selected{% endif %}>Single</option>
+                            <option value="Married" {% if student.civil_status == 'Married' %}selected{% endif %}>Married</option>
+                            <option value="Divorced" {% if student.civil_status == 'Divorced' %}selected{% endif %}>Divorced</option>
+                            <option value="Widowed" {% if student.civil_status == 'Widowed' %}selected{% endif %}>Widowed</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Contact Number</label>
+                        <input type="tel" name="contact_number" value="{{ student.contact_number|default:'' }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-maroon focus:border-maroon">
+                    </div>
+                </div>
+
+                <!-- Contact Person -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Contact Person</label>
+                    <input type="text" name="contact_person" value="{{ student.contact_person|default:'' }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-maroon focus:border-maroon">
+                </div>
+
+                <!-- Academic Information -->
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b">Academic Information</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Student ID</label>
+                            <input type="text" name="student_id" value="{{ student.student_id|default:'' }}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-maroon focus:border-maroon"
+                                   placeholder="YYYY-XXXXX">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">College</label>
+                            <select name="college" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-maroon focus:border-maroon">
+                                <option value="College of Computing Studies" selected>College of Computing Studies</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                            <select name="department" id="department" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-maroon focus:border-maroon">
+                                <option value="">Select Department</option>
+                                <option value="Information Technology" {% if student.department == 'Information Technology' %}selected{% endif %}>Information Technology</option>
+                                <option value="Computer Science" {% if student.department == 'Computer Science' %}selected{% endif %}>Computer Science</option>
+                                <option value="ACT Application Development" {% if student.department == 'ACT Application Development' %}selected{% endif %}>ACT Application Development</option>
+                                <option value="ACT Networking" {% if student.department == 'ACT Networking' %}selected{% endif %}>ACT Networking</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Course</label>
+                            <select name="course" id="course" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-maroon focus:border-maroon">
+                                <option value="">Select Course</option>
+                                <option value="BS Information Technology" {% if student.course == 'BS Information Technology' %}selected{% endif %}>BS Information Technology</option>
+                                <option value="BS Computer Science" {% if student.course == 'BS Computer Science' %}selected{% endif %}>BS Computer Science</option>
+                                <option value="Application Development" {% if student.course == 'Application Development' %}selected{% endif %}>Application Development</option>
+                                <option value="Networking" {% if student.course == 'Networking' %}selected{% endif %}>Networking</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RFID Management -->
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b">RFID Management</h2>
+                    <div class="space-y-4">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-700">Current RFID Tag</p>
+                                    <p class="text-lg font-mono {% if student.rfid_tag %}text-green-600{% else %}text-gray-400{% endif %}">
+                                        {% if student.rfid_tag %}
+                                            {{ student.rfid_tag }}
+                                        {% else %}
+                                            Not assigned
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="flex gap-2">
+                                    {% if student.rfid_tag %}
+                                    <button type="button" id="deleteRfidBtn" 
+                                            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+                                        Delete RFID
+                                    </button>
+                                    {% endif %}
+                                    <button type="button" id="manageRfidBtn" 
+                                            class="px-4 py-2 bg-maroon text-white rounded-lg hover:bg-maroon-dark transition">
+                                        {% if student.rfid_tag %}Change RFID{% else %}Add RFID{% endif %}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" name="rfid_tag" id="rfidTagInput" value="{{ student.rfid_tag|default:'' }}">
+                        <input type="hidden" name="clear_rfid" id="clearRfidInput" value="off">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+                <a href="{% url 'user_management' %}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">Cancel</a>
+                <button type="submit" class="px-4 py-2 bg-maroon text-white rounded-lg hover:bg-maroon-dark transition">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- RFID Modal for Add/Change -->
+<div id="rfidModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center transition-all duration-300">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 transform transition-all duration-300 scale-95 opacity-0" id="modalContent">
+        <div class="bg-gradient-to-r from-maroon to-maroon-dark rounded-t-2xl px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 6v6l4 2"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-white">
+                            {% if student.rfid_tag %}Change RFID Tag{% else %}Add RFID Tag{% endif %}
+                        </h3>
+                        <p class="text-red-100 text-xs">Tap your RFID card on the reader</p>
+                    </div>
+                </div>
+                <button id="closeModalBtn" class="text-white/70 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="p-6 text-center">
+            <div class="w-24 h-24 mx-auto mb-4 bg-maroon/10 rounded-full flex items-center justify-center">
+                <svg class="w-12 h-12 text-maroon animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 6v6l4 2"/>
+                </svg>
+            </div>
+            
+            <div id="rfidStatus" class="text-center">
+                <p class="text-gray-600 text-sm mb-2">Please tap your RFID card on the reader</p>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p class="text-blue-700 font-medium mb-2">📇 Waiting for RFID tap...</p>
+                    <p class="text-sm text-gray-600">The system is waiting for your card.</p>
+                    <div class="mt-3 flex items-center justify-center gap-2 text-xs text-gray-500">
+                        <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                        <span>Listening for RFID reader...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="rfidSuccess" class="hidden text-center">
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <svg class="w-12 h-12 text-green-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <p class="text-green-700 font-medium mb-2">✅ RFID Tag Captured!</p>
+                    <p class="text-sm text-gray-600" id="capturedRfid"></p>
+                </div>
+            </div>
+            
+            <div id="rfidError" class="hidden text-center">
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <svg class="w-12 h-12 text-red-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <p class="text-red-700 font-medium mb-2">❌ Error</p>
+                    <p class="text-sm text-gray-600" id="errorMessage">Failed to read RFID tag</p>
+                </div>
+            </div>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-200 flex justify-between">
+            <button id="cancelRfidBtn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
+                Cancel
+            </button>
+            <button id="confirmRfidBtn" class="px-4 py-2 bg-maroon text-white rounded-lg hover:bg-maroon-dark transition hidden">
+                Confirm
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteConfirmModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center transition-all duration-300">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4">
+        <div class="bg-gradient-to-r from-red-600 to-red-700 rounded-t-2xl px-6 py-4">
+            <h3 class="text-xl font-bold text-white">Delete RFID Tag</h3>
+        </div>
+        <div class="p-6">
+            <p class="text-gray-700 mb-4">Are you sure you want to delete the RFID tag for <strong>{{ student.get_full_name }}</strong>?</p>
+            <p class="text-sm text-gray-500 mb-4">Current RFID: <span class="font-mono">{{ student.rfid_tag }}</span></p>
+            <div class="bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded">
+                <p class="text-xs text-yellow-700">⚠️ This will remove the RFID tag from this student. The student will need to register a new RFID tag to record attendance.</p>
+            </div>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+            <button id="cancelDeleteBtn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">Cancel</button>
+            <button id="confirmDeleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">Delete</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let pollingInterval = null;
+    let capturedRfidTag = null;
+    let modalOpenTime = null;
+    
+    // Course mapping
+    const courseMap = {
+        'Information Technology': ['BS Information Technology'],
+        'Computer Science': ['BS Computer Science'],
+        'ACT Application Development': ['Application Development'],
+        'ACT Networking': ['Networking']
+    };
+    
+    // Update course dropdown based on department
+    const departmentSelect = document.getElementById('department');
+    const courseSelect = document.getElementById('course');
+    
+    if (departmentSelect) {
+        departmentSelect.addEventListener('change', function() {
+            const selectedDept = this.value;
+            courseSelect.innerHTML = '<option value="">Select Course</option>';
+            
+            if (selectedDept && courseMap[selectedDept]) {
+                courseMap[selectedDept].forEach(courseName => {
+                    const option = document.createElement('option');
+                    option.value = courseName;
+                    option.textContent = courseName;
+                    courseSelect.appendChild(option);
+                });
+            }
+        });
+    }
+    
+    // Clear stored RFID on server
+    async function clearStoredRfid() {
+        try {
+            const response = await fetch('/api/clear-latest-rfid/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                }
+            });
+            const data = await response.json();
+            console.log('Stored RFID cleared:', data);
+            return true;
+        } catch (error) {
+            console.error('Error clearing stored RFID:', error);
+            return false;
+        }
+    }
+    
+    // Clear any pending RFID registration
+    async function clearPendingRfid() {
+        try {
+            await fetch('/api/clear-pending-rfid/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                }
+            });
+            console.log('Pending RFID cleared');
+        } catch (error) {
+            console.error('Error clearing pending RFID:', error);
+        }
+    }
+    
+    // Also clear the latest RFID tag by calling receive-rfid with empty tag
+    async function resetLatestRfid() {
+        try {
+            await fetch('/api/receive-rfid/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                },
+                body: JSON.stringify({ rfid_tag: null })
+            });
+            console.log('Latest RFID reset');
+        } catch (error) {
+            console.error('Error resetting latest RFID:', error);
+        }
+    }
+    
+    // Delete RFID Tag
+    function deleteRfid() {
+        const deleteModal = document.getElementById('deleteConfirmModal');
+        deleteModal.classList.remove('hidden');
+        deleteModal.classList.add('flex');
+    }
+    
+    function closeDeleteModal() {
+        const deleteModal = document.getElementById('deleteConfirmModal');
+        deleteModal.classList.add('hidden');
+        deleteModal.classList.remove('flex');
+    }
+    
+    function confirmDeleteRfid() {
+        document.getElementById('clearRfidInput').value = 'on';
+        document.getElementById('rfidTagInput').value = '';
+        document.getElementById('editStudentForm').submit();
+    }
+    
+    // RFID Modal functionality
+    const rfidModal = document.getElementById('rfidModal');
+    const modalContent = document.getElementById('modalContent');
+    const manageRfidBtn = document.getElementById('manageRfidBtn');
+    const deleteRfidBtn = document.getElementById('deleteRfidBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const cancelRfidBtn = document.getElementById('cancelRfidBtn');
+    const confirmRfidBtn = document.getElementById('confirmRfidBtn');
+    const rfidStatus = document.getElementById('rfidStatus');
+    const rfidSuccess = document.getElementById('rfidSuccess');
+    const rfidError = document.getElementById('rfidError');
+    const capturedRfidSpan = document.getElementById('capturedRfid');
+    const rfidTagInput = document.getElementById('rfidTagInput');
+    const clearRfidInput = document.getElementById('clearRfidInput');
+    
+    async function openRfidModal() {
+        // Clear stored RFID tag on server
+        await clearStoredRfid();
+        
+        // Clear any pending registration
+        await clearPendingRfid();
+        
+        // Reset the latest RFID tag
+        await resetLatestRfid();
+        
+        // Reset captured tag
+        capturedRfidTag = null;
+        
+        // Record when modal opened
+        modalOpenTime = Date.now();
+        
+        // Reset UI
+        rfidStatus.classList.remove('hidden');
+        rfidSuccess.classList.add('hidden');
+        rfidError.classList.add('hidden');
+        confirmRfidBtn.classList.add('hidden');
+        
+        rfidModal.classList.remove('hidden');
+        rfidModal.classList.add('flex');
+        setTimeout(() => {
+            modalContent.classList.remove('scale-95', 'opacity-0');
+            modalContent.classList.add('scale-100', 'opacity-100');
+        }, 10);
+        
+        // Wait 2 seconds then start polling
+        setTimeout(() => {
+            startRfidPolling();
+        }, 2000);
+    }
+    
+    function closeRfidModal() {
+        stopRfidPolling();
+        modalContent.classList.remove('scale-100', 'opacity-100');
+        modalContent.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            rfidModal.classList.add('hidden');
+            rfidModal.classList.remove('flex');
+        }, 200);
+    }
+    
+    function startRfidPolling() {
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+        }
+        
+        pollingInterval = setInterval(() => {
+            fetch('/api/get-latest-rfid/')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('RFID check:', data);
+                    // Only accept RFID tags that come AFTER the modal opened
+                    if (data.rfid_tag && data.rfid_tag !== capturedRfidTag && data.rfid_tag !== 'null') {
+                        capturedRfidTag = data.rfid_tag;
+                        stopRfidPolling();
+                        
+                        // Show success
+                        rfidStatus.classList.add('hidden');
+                        capturedRfidSpan.textContent = capturedRfidTag;
+                        rfidSuccess.classList.remove('hidden');
+                        confirmRfidBtn.classList.remove('hidden');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking RFID:', error);
+                });
+        }, 1000);
+        
+        // Set timeout to stop polling after 30 seconds
+        setTimeout(() => {
+            if (pollingInterval && !capturedRfidTag) {
+                stopRfidPolling();
+                rfidStatus.classList.add('hidden');
+                document.getElementById('errorMessage').textContent = 'Timeout: No RFID tag detected. Please try again.';
+                rfidError.classList.remove('hidden');
+                setTimeout(() => {
+                    closeRfidModal();
+                }, 3000);
+            }
+        }, 30000);
+    }
+    
+    function stopRfidPolling() {
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+        }
+    }
+    
+    function confirmRfid() {
+        if (capturedRfidTag) {
+            clearRfidInput.value = 'off';
+            rfidTagInput.value = capturedRfidTag;
+            closeRfidModal();
+            document.getElementById('editStudentForm').submit();
+        }
+    }
+    
+    function getCSRFToken() {
+        return document.cookie.split('; ')
+            .find(row => row.startsWith('csrftoken='))
+            ?.split('=')[1] || '';
+    }
+    
+    if (manageRfidBtn) {
+        manageRfidBtn.addEventListener('click', openRfidModal);
+    }
+    
+    if (deleteRfidBtn) {
+        deleteRfidBtn.addEventListener('click', deleteRfid);
+    }
+    
+    document.getElementById('cancelDeleteBtn')?.addEventListener('click', closeDeleteModal);
+    document.getElementById('confirmDeleteBtn')?.addEventListener('click', confirmDeleteRfid);
+    
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', closeRfidModal);
+    }
+    
+    if (cancelRfidBtn) {
+        cancelRfidBtn.addEventListener('click', closeRfidModal);
+    }
+    
+    if (confirmRfidBtn) {
+        confirmRfidBtn.addEventListener('click', confirmRfid);
+    }
+    
+    // Close modals on outside click
+    rfidModal.addEventListener('click', (e) => {
+        if (e.target === rfidModal) {
+            closeRfidModal();
+        }
+    });
+    
+    document.getElementById('deleteConfirmModal')?.addEventListener('click', (e) => {
+        if (e.target === document.getElementById('deleteConfirmModal')) {
+            closeDeleteModal();
+        }
+    });
+    
+    // Clean up on page unload
+    window.addEventListener('beforeunload', () => {
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+        }
+    });
+</script>
+{% endblock %}

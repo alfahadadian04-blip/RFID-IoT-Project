@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}User Management - Super Admin{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6 max-w-7xl">
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-800">User Management</h1>
+        <p class="text-gray-500 text-sm mt-1">Manage all users (Students and Admins)</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+            <p class="text-gray-500 text-xs font-semibold uppercase tracking-wider">Total Users</p>
+            <p class="text-3xl font-bold text-gray-800 mt-1">{{ total_users }}</p>
+        </div>
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+            <p class="text-gray-500 text-xs font-semibold uppercase tracking-wider">Students</p>
+            <p class="text-3xl font-bold text-green-600 mt-1">{{ total_students }}</p>
+        </div>
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+            <p class="text-gray-500 text-xs font-semibold uppercase tracking-wider">Admins</p>
+            <p class="text-3xl font-bold text-maroon mt-1">{{ total_admins }}</p>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+        <form method="GET" action="{% url 'user_management' %}" id="filterForm" class="flex flex-col md:flex-row gap-4">
+            <div class="flex-1">
+                <input type="text" name="search" placeholder="Search by name, email, or student ID..." 
+                       value="{{ search_query }}"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon">
+            </div>
+            <select name="user_type" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon">
+                <option value="all" {% if user_type_filter == 'all' or not user_type_filter %}selected{% endif %}>All Users</option>
+                <option value="student" {% if user_type_filter == 'student' %}selected{% endif %}>Students Only</option>
+                <option value="admin" {% if user_type_filter == 'admin' %}selected{% endif %}>Admins Only</option>
+            </select>
+            <button type="submit" class="px-6 py-2 bg-maroon text-white rounded-lg hover:bg-maroon-dark transition">
+                Filter
+            </button>
+            <a href="{% url 'user_management' %}" class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition text-center">
+                Clear
+            </a>
+        </form>
+    </div>
+
+    <!-- Users Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">User</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Email</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Student ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Type</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">RFID</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for user in users %}
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-6 py-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-full bg-maroon/10 flex items-center justify-center text-maroon font-semibold text-xs">
+                                    {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800">{{ user.get_full_name }}</p>
+                                    <p class="text-xs text-gray-500">Joined: {{ user.date_joined|date:"M d, Y" }}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-3 text-sm text-gray-600">{{ user.email }}</td>
+                        <td class="px-6 py-3 text-sm text-gray-600">{{ user.student_id|default:"—" }}</td>
+                        <td class="px-6 py-3">
+                            {% if user.user_type == 'superadmin' %}
+                                <span class="px-2 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">Super Admin</span>
+                            {% elif user.user_type == 'admin' %}
+                                <span class="px-2 py-1 rounded-full text-xs font-semibold bg-maroon/10 text-maroon">Admin</span>
+                            {% else %}
+                                <span class="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">Student</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-3 text-sm text-gray-600">
+                            {% if user.rfid_tag %}
+                                <span class="font-mono text-xs">{{ user.rfid_tag }}</span>
+                            {% else %}
+                                <span class="text-gray-400">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-3">
+                            <div class="flex gap-2">
+                                {% if user.user_type == 'student' %}
+                                <a href="{% url 'edit_student' user.id %}" 
+                                   class="text-maroon hover:text-maroon-dark text-sm font-medium transition">
+                                    Edit
+                                </a>
+                                <button onclick="deleteUser({{ user.id }}, '{{ user.get_full_name|escapejs }}')" 
+                                        class="text-red-600 hover:text-red-800 text-sm font-medium transition">
+                                    Delete
+                                </button>
+                                {% elif user.user_type == 'admin' and user.id != request.user.id %}
+                                <button onclick="deleteUser({{ user.id }}, '{{ user.get_full_name|escapejs }}')" 
+                                        class="text-red-600 hover:text-red-800 text-sm font-medium transition">
+                                    Delete
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center text-gray-400">
+                            No users found
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if users.has_other_pages %}
+        <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <div class="flex justify-center gap-2">
+                {% if users.has_previous %}
+                <a href="?page={{ users.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if user_type_filter and user_type_filter != 'all' %}&user_type={{ user_type_filter }}{% endif %}" 
+                   class="px-3 py-1 border rounded-md text-sm hover:bg-gray-100 transition">Previous</a>
+                {% endif %}
+                
+                <span class="px-3 py-1 text-sm text-gray-600">Page {{ users.number }} of {{ users.paginator.num_pages }}</span>
+                
+                {% if users.has_next %}
+                <a href="?page={{ users.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if user_type_filter and user_type_filter != 'all' %}&user_type={{ user_type_filter }}{% endif %}" 
+                   class="px-3 py-1 border rounded-md text-sm hover:bg-gray-100 transition">Next</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden items-center justify-center">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4">
+        <div class="bg-gradient-to-r from-red-600 to-red-700 rounded-t-2xl px-6 py-4">
+            <h3 class="text-xl font-bold text-white">Delete User</h3>
+        </div>
+        <div class="p-6">
+            <p class="text-gray-700 mb-4">Are you sure you want to delete <strong id="deleteUserName"></strong>?</p>
+            <div class="bg-red-50 border-l-4 border-red-500 p-3 rounded">
+                <p class="text-xs text-red-700">⚠️ This action cannot be undone. All associated data will be permanently deleted.</p>
+            </div>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+            <button onclick="closeDeleteModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">Cancel</button>
+            <button id="confirmDeleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">Delete</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let deleteUserId = null;
+    let deleteUserName = '';
+    
+    function deleteUser(id, name) {
+        deleteUserId = id;
+        deleteUserName = name;
+        document.getElementById('deleteUserName').textContent = name;
+        document.getElementById('deleteModal').classList.remove('hidden');
+        document.getElementById('deleteModal').classList.add('flex');
+    }
+    
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').classList.add('hidden');
+        document.getElementById('deleteModal').classList.remove('flex');
+        deleteUserId = null;
+    }
+    
+    document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+        if (!deleteUserId) return;
+        
+        try {
+            const response = await fetch(`/user/delete/${deleteUserId}/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': getCSRFToken(),
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to delete user');
+        }
+        
+        closeDeleteModal();
+    });
+    
+    function getCSRFToken() {
+        return document.cookie.split('; ')
+            .find(row => row.startsWith('csrftoken='))
+            ?.split('=')[1] || '';
+    }
+    
+    // Make sure the filter form submits properly
+    document.getElementById('filterForm')?.addEventListener('submit', function(e) {
+        // The form will submit normally with GET method
+        // This ensures the search and filter parameters are preserved
+    });
+</script>
+{% endblock %}

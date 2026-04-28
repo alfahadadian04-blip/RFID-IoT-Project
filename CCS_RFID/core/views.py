@@ -3,8 +3,13 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from django.contrib import messages
+from django.core.paginator import Paginator
+from django.db import models as db_models
 from classes.models import Enrollment, Class, ClassSession, Attendance
+from CCS.models import User
 import json
+import re
 
 
 @login_required
@@ -203,34 +208,150 @@ def activity(request):
 
 @login_required
 def stud_dashboard(request):
-    """Student dashboard"""
-    return render(request, 'stud_dashboard.html')
+    """Student dashboard with accurate data"""
+    from classes.models import Enrollment
+    import re
+    from django.http import JsonResponse  # For debugging
+    
+    # Get all enrollments for this student
+    enrollments = Enrollment.objects.filter(student=request.user).select_related('class_obj')
+    
+    print(f"=== STUD DASHBOARD DEBUG ===")
+    print(f"Student: {request.user.get_full_name()}")
+    print(f"Total enrollments found: {enrollments.count()}")
+    
+    subjects = []
+    dropped_count = 0
+    at_risk_count = 0
+    total_units = 0
+    
+    for enrollment in enrollments:
+        class_obj = enrollment.class_obj
+        absence_count = enrollment.absence_count
+        status = enrollment.status
+        
+        print(f"\nProcessing enrollment:")
+        print(f"  Class ID: {class_obj.id}")
+        print(f"  Subject: {class_obj.subject_code} - {class_obj.subject_description}")
+        print(f"  Absences: {absence_count}")
+        print(f"  Status: {status}")
+        
+        # Extract units from day column
+        day_text = class_obj.day if class_obj.day else ''
+        units = 3
+        
+        lec_match = re.search(r'Lec\s+(\d+\.?\d*)', day_text, re.IGNORECASE)
+        lab_match = re.search(r'Lab\s+(\d+\.?\d*)', day_text, re.IGNORECASE)
+        
+        lec_units = float(lec_match.group(1)) if lec_match else 0
+        lab_units = float(lab_match.group(1)) if lab_match else 0
+        total_units_for_subject = lec_units + lab_units
+        
+        if total_units_for_subject > 0:
+            units = total_units_for_subject
+            print(f"  Units from day text: {units} (Lec: {lec_units}, Lab: {lab_units})")
+        
+        total_units += units
+        
+        if status == 'dropped':
+            dropped_count += 1
+        elif absence_count >= 4:
+            at_risk_count += 1
+        
+        day_name = re.sub(r'\s*\(.*', '', day_text).strip() if day_text else 'TBA'
+        if day_name == '':
+            day_name = class_obj.day if class_obj.day else 'TBA'
+        
+        subjects.append({
+            'id': class_obj.id,
+            'name': class_obj.subject_description,
+            'code': class_obj.subject_code,
+            'schedule_day': day_name,
+            'time_start': class_obj.time_from,
+            'time_end': class_obj.time_to,
+            'room': class_obj.room,
+            'absence_count': absence_count,
+            'status': status,
+            'absences_left': 5 - absence_count if absence_count < 5 else 0,
+            'units': units,
+        })
+    
+    print(f"\n=== FINAL DATA ===")
+    print(f"Total subjects in list: {len(subjects)}")
+    print(f"Total units: {total_units}")
+    print(f"Dropped count: {dropped_count}")
+    print(f"At risk count: {at_risk_count}")
+    
+    context = {
+        'subjects': subjects,
+        'total_subjects': len(subjects),
+        'total_units': int(total_units) if total_units.is_integer() else total_units,
+        'dropped_count': dropped_count,
+        'at_risk_count': at_risk_count,
+    }
+    
+    print(f"Context keys: {context.keys()}")
+    print(f"Subjects in context: {len(context['subjects'])}")
+    
+    return render(request, 'stud_dashboard.html', context)
 
 
 @login_required
 def student_subject(request):
-    """Display all subjects the student is enrolled in"""
+    """Display all subjects the student is enrolled in with accurate units from Excel"""
+    from classes.models import Enrollment
+    import re
+    
     enrollments = Enrollment.objects.filter(student=request.user).select_related('class_obj')
     
     subjects = []
     unique_days = set()
+    total_units = 0
     
     for enrollment in enrollments:
         class_obj = enrollment.class_obj
+        
+        # Extract units from day column (format: "M (Lec 2.00) (Lab 0.00)")
+        day_text = class_obj.day if class_obj.day else ''
+        units = 3  # Default to 3 if parsing fails
+        
+        # Parse units using regex
+        # Pattern to find Lec X.XX or Lab X.XX
+        lec_match = re.search(r'Lec\s+(\d+\.?\d*)', day_text, re.IGNORECASE)
+        lab_match = re.search(r'Lab\s+(\d+\.?\d*)', day_text, re.IGNORECASE)
+        
+        lec_units = float(lec_match.group(1)) if lec_match else 0
+        lab_units = float(lab_match.group(1)) if lab_match else 0
+        total_units_for_subject = lec_units + lab_units
+        
+        if total_units_for_subject > 0:
+            units = total_units_for_subject
+        else:
+            # If no units found, check for total units format
+            total_match = re.search(r'(\d+\.?\d*)\s*units?', day_text, re.IGNORECASE)
+            if total_match:
+                units = float(total_match.group(1))
+        
+        total_units += units
+        
+        # Extract day name (before the parenthesis)
+        day_name = re.sub(r'\s*\(.*', '', day_text).strip() if day_text else 'TBA'
+        if day_name:
+            unique_days.add(day_name)
+        
         subjects.append({
             'id': class_obj.id,
             'name': class_obj.subject_description,
             'code': class_obj.subject_code,
             'description': class_obj.subject_description,
-            'schedule_day': class_obj.day,
+            'schedule_day': day_name,
             'time_start': class_obj.time_from,
             'time_end': class_obj.time_to,
             'room': class_obj.room,
-            'units': class_obj.class_size or 3,
+            'units': units,
             'status': enrollment.status,
             'absences': enrollment.absence_count,
         })
-        unique_days.add(class_obj.day)
     
     # Create time slots from 7 AM to 8 PM
     time_slots = []
@@ -248,7 +369,7 @@ def student_subject(request):
     
     context = {
         'subjects': subjects,
-        'total_units': sum(s['units'] for s in subjects),
+        'total_units': int(total_units) if total_units.is_integer() else total_units,
         'days_per_week': len(unique_days),
         'time_slots': time_slots,
         'current_semester': '2024-2025',
@@ -359,3 +480,143 @@ def update_attendance_status(request):
         return JsonResponse({'success': False, 'error': 'Attendance record not found'}, status=404)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+# ============================================
+# SUPERADMIN USER MANAGEMENT
+# ============================================
+
+@login_required
+def user_management(request):
+    """Superadmin view to manage all users (students and admins)"""
+    # Check if user is superadmin
+    if request.user.user_type != 'superadmin':
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('dashboard')
+    
+    # Get all users except superadmins
+    users = User.objects.exclude(user_type='superadmin').order_by('-date_joined')
+    
+    # Calculate stats
+    total_users = users.count()
+    total_students = users.filter(user_type='student').count()
+    total_admins = users.filter(user_type='admin').count()
+    
+    # Search functionality
+    search_query = request.GET.get('search', '')
+    if search_query:
+        users = users.filter(
+            db_models.Q(first_name__icontains=search_query) |
+            db_models.Q(last_name__icontains=search_query) |
+            db_models.Q(email__icontains=search_query) |
+            db_models.Q(student_id__icontains=search_query)
+        )
+    
+    # Filter by user type
+    user_type_filter = request.GET.get('user_type', '')
+    if user_type_filter and user_type_filter != 'all':
+        users = users.filter(user_type=user_type_filter)
+    
+    # Pagination
+    paginator = Paginator(users, 20)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'users': page_obj,
+        'search_query': search_query,
+        'user_type_filter': user_type_filter,
+        'total_users': total_users,
+        'total_students': total_students,
+        'total_admins': total_admins,
+    }
+    return render(request, 'user_management.html', context)
+
+
+@login_required
+def edit_student(request, user_id):
+    """Superadmin view to edit student profile"""
+    # Check if user is superadmin
+    if request.user.user_type != 'superadmin':
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('dashboard')
+    
+    student = get_object_or_404(User, id=user_id, user_type='student')
+    
+    if request.method == 'POST':
+        try:
+            # Personal Information
+            student.first_name = request.POST.get('first_name')
+            student.middle_name = request.POST.get('middle_name', '')
+            student.last_name = request.POST.get('last_name')
+            student.gender = request.POST.get('gender')
+            student.civil_status = request.POST.get('civil_status')
+            
+            # Date of Birth
+            dob = request.POST.get('date_of_birth')
+            if dob:
+                student.date_of_birth = dob
+            else:
+                student.date_of_birth = None
+            
+            # Contact Information
+            student.contact_person = request.POST.get('contact_person', '')
+            student.contact_number = request.POST.get('contact_number', '')
+            
+            # Academic Information
+            student.college = request.POST.get('college')
+            student.department = request.POST.get('department')
+            student.course = request.POST.get('course')
+            student.student_id = request.POST.get('student_id')
+            
+            # RFID Tag
+            rfid_tag = request.POST.get('rfid_tag')
+            clear_rfid = request.POST.get('clear_rfid') == 'on'
+            
+            if clear_rfid:
+                student.rfid_tag = None
+            elif rfid_tag:
+                # Check if RFID is already used by another student
+                existing = User.objects.filter(rfid_tag=rfid_tag).exclude(id=student.id).first()
+                if existing:
+                    messages.error(request, f'RFID tag {rfid_tag} is already assigned to {existing.get_full_name()}')
+                    return redirect('edit_student', user_id=user_id)
+                student.rfid_tag = rfid_tag
+            
+            student.save()
+            messages.success(request, f'Student {student.get_full_name()} has been updated successfully!')
+            return redirect('user_management')
+            
+        except Exception as e:
+            messages.error(request, f'Error updating student: {str(e)}')
+    
+    context = {
+        'student': student,
+        'is_superadmin': True,
+    }
+    return render(request, 'edit_student.html', context)
+
+
+@login_required
+def delete_user(request, user_id):
+    """Superadmin view to delete a user"""
+    if request.user.user_type != 'superadmin':
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+    
+    if request.method == 'DELETE':
+        try:
+            user = User.objects.get(id=user_id)
+            user_name = user.get_full_name()
+            
+            # Don't allow deleting yourself
+            if user.id == request.user.id:
+                return JsonResponse({'error': 'You cannot delete your own account'}, status=400)
+            
+            user.delete()
+            return JsonResponse({'success': True, 'message': f'User {user_name} has been deleted.'})
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'User not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Invalid request method'}, status=400)

@@ -26,6 +26,7 @@ class CustomUserManager(BaseUserManager):
 # Custom User Model
 class User(AbstractBaseUser, PermissionsMixin):
     USER_TYPES = (
+        ('superadmin', 'Super Admin'),
         ('admin', 'Admin'),
         ('student', 'Student'),
     )

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CCS Attendance Tracker — Student Registration</title>
+  <title>CCS Attendance Tracker — Admin Registration</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
@@ -12,7 +12,6 @@
       .font-dmsans { font-family: 'DM Sans', sans-serif; }
     }
     
-    /* Custom animations */
     @keyframes drift {
       0% { transform: translate(0, 0) scale(1); }
       100% { transform: translate(30px, 40px) scale(1.08); }
@@ -31,28 +30,43 @@
     .animate-drift { animation: drift 18s ease-in-out infinite alternate; }
     .animate-cardIn { animation: cardIn 0.55s cubic-bezier(0.16,1,0.3,1) both; }
     .animate-modalIn { animation: modalIn 0.3s ease-out; }
+    
+    /* Custom scrollbar */
+    .custom-scroll::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+    }
+    
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(123, 28, 36, 0.5);
+      border-radius: 10px;
+    }
+    
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(123, 28, 36, 0.7);
+    }
   </style>
 </head>
-<body class="h-full font-dmsans bg-[#1a0a0c] overflow-hidden">
+<body class="h-screen font-dmsans bg-[#1a0a0c] overflow-hidden flex flex-col">
 
-<!-- ── BACKGROUND (same as adminLogin) ── -->
-<div class="fixed inset-0 bg-[#2a1015] overflow-hidden">
-  <!-- Campus image placeholder with gradient overlay -->
+<!-- BACKGROUND -->
+<div class="fixed inset-0 bg-[#2a1015] overflow-hidden z-0">
   <div class="absolute inset-0 bg-gradient-to-br from-[#500f16]/55 to-[#14080a]/70 bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(255,255,255,0.015)_2px,rgba(255,255,255,0.015)_4px)]"></div>
   
-  <!-- Atmospheric blobs -->
   <div class="absolute w-[520px] h-[420px] bg-[#7B1C24] rounded-full blur-[80px] opacity-35 -top-[100px] -left-[120px] animate-drift"></div>
   <div class="absolute w-[400px] h-[500px] bg-[#3d0e14] rounded-full blur-[80px] opacity-35 -bottom-[100px] -right-[80px] animate-drift" style="animation-delay: -6s"></div>
   <div class="absolute w-[300px] h-[300px] bg-[#6b1020] rounded-full blur-[80px] opacity-35 top-[40%] left-[55%] animate-drift" style="animation-delay: -12s"></div>
   
-  <!-- Scene overlay -->
   <div class="absolute inset-0 bg-gradient-to-t from-[#0f0406]/75 via-transparent to-black/20"></div>
   
-  <!-- Campus hint -->
   <p class="absolute bottom-5 left-1/2 -translate-x-1/2 font-dmsans text-[11px] text-white/25 tracking-[0.1em] uppercase">[ campus photo placeholder ]</p>
 </div>
 
-<!-- ── MODAL OVERLAY ── -->
+<!-- MODAL OVERLAY -->
 <div id="modalOverlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
   <div id="modal" class="bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.3)] w-full max-w-md p-8 animate-modalIn">
     <div class="flex items-center gap-3 mb-6">
@@ -67,25 +81,21 @@
     <p class="text-[#6b6b6b] text-sm mb-6">Please set up your login credentials</p>
     
     <form id="credentialForm">
-      <!-- Email -->
       <div class="mb-4">
         <label class="block text-[12px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-2">Email Address</label>
         <input type="email" id="modalEmail" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] outline-none transition-all" placeholder="Enter your email">
       </div>
       
-      <!-- Password -->
       <div class="mb-4">
         <label class="block text-[12px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-2">Password</label>
         <input type="password" id="modalPassword" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] outline-none transition-all" placeholder="Create a password">
       </div>
       
-      <!-- Confirm Password -->
       <div class="mb-6">
         <label class="block text-[12px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-2">Confirm Password</label>
         <input type="password" id="modalConfirmPassword" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] outline-none transition-all" placeholder="Re-enter password">
       </div>
       
-      <!-- Error message -->
       <div id="modalError" class="text-[#c0392b] text-sm mb-4 hidden flex items-center gap-2">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
           <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
@@ -93,15 +103,6 @@
         <span id="modalErrorText"></span>
       </div>
       
-      <!-- Success message -->
-      <div id="modalSuccess" class="text-[#1a7a4a] text-sm mb-4 hidden flex items-center gap-2">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
-          <path d="M20 6L9 17l-5-5"/>
-        </svg>
-        <span id="modalSuccessText"></span>
-      </div>
-      
-      <!-- Buttons -->
       <div class="flex gap-3">
         <button type="button" id="cancelModalBtn" class="flex-1 py-3 bg-white text-[#6b6b6b] border-2 border-[#e0dbd4] rounded-lg font-dmsans text-[14px] font-semibold hover:bg-[#f5f5f5] transition-all">
           Cancel
@@ -114,10 +115,10 @@
   </div>
 </div>
 
-<!-- ── PAGE ── -->
-<div class="relative z-[2] min-h-screen flex flex-col">
+<!-- PAGE -->
+<div class="relative z-[2] flex flex-col h-full">
 
-  <!-- HEADER (same as adminLogin) -->
+  <!-- HEADER -->
   <header class="bg-[#5A1219] flex items-center gap-[14px] px-6 h-14 shadow-[0_2px_12px_rgba(0,0,0,0.45)] flex-shrink-0">
     <div class="w-[38px] h-[38px] rounded-full bg-white/15 border-2 border-white/30 flex items-center justify-center overflow-hidden flex-shrink-0">
       <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" class="w-[22px] h-[22px] opacity-85">
@@ -129,208 +130,293 @@
     <h1 class="font-dmsans font-semibold text-[15px] text-white tracking-[0.02em]">Western Mindanao State University</h1>
   </header>
 
-  <!-- MAIN -->
-  <main class="flex-1 flex items-center justify-center p-6 py-8 overflow-y-auto">
-    <!-- Registration Card -->
-    <div class="bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.25),0_4px_12px_rgba(0,0,0,0.1)] w-full max-w-[900px] p-[32px_40px] border border-white/60 animate-cardIn my-4">
-      
-      <!-- Header with icon -->
-      <div class="flex items-center gap-4 mb-6">
-        <div class="w-14 h-14 rounded-full border-[2.5px] border-[#7B1C24] bg-[#f5f0eb] flex items-center justify-center flex-shrink-0 overflow-hidden">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#7B1C24" stroke-width="1.5" class="w-7 h-7">
-            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
-          </svg>
-        </div>
-        <div>
-          <span class="block font-dmsans text-[11px] font-medium text-[#7B1C24] uppercase tracking-[0.1em] mb-[3px]">College of Computing Studies</span>
-          <h2 class="font-playfair text-[24px] font-semibold text-[#1a1a1a] leading-tight">Student Registration</h2>
-        </div>
-      </div>
-
-      <!-- Instruction text -->
-      <p class="text-[#6b6b6b] text-[15px] mb-8 pb-2 border-b border-[#e0dbd4]">Please fill in your information</p>
-
-      <form id="registrationForm" method="post" action="{% url 'adminRegistration' %}">
-        {% csrf_token %}
-        <!-- Your Name Section -->
-        <div class="mb-8">
-          <label class="block text-[13px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-3">Your Name</label>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <input type="text" name="first_name" id="firstName" placeholder="First Name" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)]" />
-            </div>
-            <div>
-              <input type="text" name="middle_name" id="middleName" placeholder="Middle Name" class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)]" />
-            </div>
-            <div>
-              <input type="text" name="last_name" id="lastName" placeholder="Last Name" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)]" />
-            </div>
-          </div>
-        </div>
-
-        <!-- Date of Birth Section -->
-        <div class="mb-8">
-          <label class="block text-[13px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-3">Date of Birth</label>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <select name="dob_day" id="dobDay" class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b6b6b%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[center_right_1rem] bg-[length:16px]">
-                <option value="" disabled selected>Day</option>
-                <option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option>
-              </select>
-            </div>
-            <div>
-              <select name="dob_month" id="dobMonth" class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b6b6b%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[center_right_1rem] bg-[length:16px]">
-                <option value="" disabled selected>Month</option>
-                <option value="01">January</option>
-                <option value="02">February</option>
-                <option value="03">March</option>
-                <option value="04">April</option>
-                <option value="05">May</option>
-                <option value="06">June</option>
-                <option value="07">July</option>
-                <option value="08">August</option>
-                <option value="09">September</option>
-                <option value="10">October</option>
-                <option value="11">November</option>
-                <option value="12">December</option>
-              </select>
-            </div>
-            <div>
-              <select name="dob_year" id="dobYear" class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b6b6b%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[center_right_1rem] bg-[length:16px]">
-                <option value="" disabled selected>Year</option>
-                <option value="2025">2025</option><option value="2024">2024</option><option value="2023">2023</option><option value="2022">2022</option><option value="2021">2021</option><option value="2020">2020</option><option value="2019">2019</option><option value="2018">2018</option><option value="2017">2017</option><option value="2016">2016</option><option value="2015">2015</option><option value="2014">2014</option><option value="2013">2013</option><option value="2012">2012</option><option value="2011">2011</option><option value="2010">2010</option><option value="2009">2009</option><option value="2008">2008</option><option value="2007">2007</option><option value="2006">2006</option><option value="2005">2005</option><option value="2004">2004</option><option value="2003">2003</option><option value="2002">2002</option><option value="2001">2001</option><option value="2000">2000</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <!-- Gender and Civil Status Row -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <div>
-            <label class="block text-[13px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-3">Gender</label>
-            <select name="gender" id="gender" class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b6b6b%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[center_right_1rem] bg-[length:16px]">
-              <option value="" disabled selected>Select Gender</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Prefer not to say">Prefer not to say</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-[13px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-3">Civil Status</label>
-            <select name="civil_status" id="civilStatus" class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b6b6b%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[center_right_1rem] bg-[length:16px]">
-              <option value="" disabled selected>Select Status</option>
-              <option value="Single">Single</option>
-              <option value="Married">Married</option>
-              <option value="Divorced">Divorced</option>
-              <option value="Widowed">Widowed</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Contact Section -->
-        <div class="mb-8">
-          <label class="block text-[13px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-3">Contact</label>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <input type="text" name="contact_person" id="contactPerson" placeholder="Contact Person" class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)]" />
-            </div>
-            <div>
-              <input type="tel" name="contact_number" id="contactNumber" placeholder="Contact Number" class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)]" />
-            </div>
-          </div>
-        </div>
-
-        <!-- Academic Information -->
-        <div class="mb-8">
-          <label class="block text-[13px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-3">Academic Information</label>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <select name="college" id="college" class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b6b6b%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[center_right_1rem] bg-[length:16px]">
-                <option value="" disabled selected>College</option>
-                <option value="College of Computing Studies" selected>College of Computing Studies</option>
-              </select>
-            </div>
-            <div>
-              <select name="department" id="department" class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b6b6b%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[center_right_1rem] bg-[length:16px]">
-                <option value="" disabled selected>Department</option>
-                <option value="Information Technology">Information Technology</option>
-                <option value="Computer Science">Computer Science</option>
-                <option value="ACT Application Development">ACT Application Development</option>
-                <option value="ACT Networking">ACT Networking</option>
-              </select>
-            </div>
-            <div>
-              <select name="course" id="course" class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b6b6b%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[center_right_1rem] bg-[length:16px]">
-                <option value="" disabled selected>Course</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <!-- Hidden field to combine date of birth -->
-        <input type="hidden" name="date_of_birth" id="dateOfBirth">
+  <!-- MAIN - SCROLLABLE -->
+  <main class="flex-1 overflow-y-auto custom-scroll">
+    <div class="flex items-center justify-center p-6 py-8 min-h-full">
+      <div class="bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.25),0_4px_12px_rgba(0,0,0,0.1)] w-full max-w-[900px] p-[32px_40px] border border-white/60 animate-cardIn my-4">
         
-        <!-- Hidden fields for email and password (will be filled by JavaScript) -->
-        <input type="hidden" name="email" id="hiddenEmail">
-        <input type="hidden" name="password" id="hiddenPassword">
-        <input type="hidden" name="confirm_password" id="hiddenConfirmPassword">
-
-        <!-- Action Buttons -->
-        <div class="flex items-center justify-between mt-10 pt-4 border-t border-[#e0dbd4]">
-          <a href="{% url 'adminLogin' %}" class="text-[14px] text-[#7B1C24] hover:text-[#5A1219] font-medium flex items-center gap-2 transition-colors">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
+        <div class="flex items-center gap-4 mb-6">
+          <div class="w-14 h-14 rounded-full border-[2.5px] border-[#7B1C24] bg-[#f5f0eb] flex items-center justify-center flex-shrink-0 overflow-hidden">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#7B1C24" stroke-width="1.5" class="w-7 h-7">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
             </svg>
-            Back to Login
-          </a>
-          
-          <div class="flex gap-3">
-            <button type="reset" class="px-6 py-3 bg-white text-[#6b6b6b] border-2 border-[#e0dbd4] rounded-lg font-dmsans text-[14px] font-semibold hover:bg-[#f5f5f5] transition-all">
-              Clear
-            </button>
-            <button type="button" id="nextBtn" class="px-8 py-3 bg-[#5A1219] text-white border-none rounded-lg font-dmsans text-[14px] font-semibold tracking-[0.04em] cursor-pointer flex items-center justify-center gap-2 transition-all hover:bg-[#9e2430] hover:shadow-[0_6px_20px_rgba(123,28,36,0.4)] active:scale-[0.985] relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:bg-gradient-to-br after:from-white/8 after:to-transparent after:via-transparent after:to-60%">
-              <span>Next</span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
-                <path d="M5 12h14M12 5l7 7-7 7"/>
-              </svg>
-            </button>
+          </div>
+          <div>
+            <span class="block font-dmsans text-[11px] font-medium text-[#7B1C24] uppercase tracking-[0.1em] mb-[3px]">College of Computing Studies</span>
+            <h2 class="font-playfair text-[24px] font-semibold text-[#1a1a1a] leading-tight">Admin Registration</h2>
           </div>
         </div>
-      </form>
 
-      <!-- Progress indicator -->
-      <div class="mt-6 flex justify-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-[#7B1C24]"></span>
-        <span class="w-2 h-2 rounded-full bg-[#e0dbd4]"></span>
-        <span class="w-2 h-2 rounded-full bg-[#e0dbd4]"></span>
+        <p class="text-[#6b6b6b] text-[15px] mb-8 pb-2 border-b border-[#e0dbd4]">Please fill in your information</p>
+
+        <form id="registrationForm" method="post" action="{% url 'adminRegistration' %}">
+          {% csrf_token %}
+          
+          <div class="mb-8">
+            <label class="block text-[13px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-3">Your Name</label>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <input type="text" name="first_name" id="firstName" placeholder="First Name" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)]" />
+              </div>
+              <div>
+                <input type="text" name="middle_name" id="middleName" placeholder="Middle Name" class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)]" />
+              </div>
+              <div>
+                <input type="text" name="last_name" id="lastName" placeholder="Last Name" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)]" />
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-8">
+            <label class="block text-[13px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-3">Date of Birth</label>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <select name="dob_day" id="dobDay" class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none">
+                  <option value="" disabled selected>Day</option>
+                  <option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option>
+                </select>
+              </div>
+              <div>
+                <select name="dob_month" id="dobMonth" class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none">
+                  <option value="" disabled selected>Month</option>
+                  <option value="01">January</option><option value="02">February</option><option value="03">March</option><option value="04">April</option><option value="05">May</option><option value="06">June</option><option value="07">July</option><option value="08">August</option><option value="09">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                </select>
+              </div>
+              <div>
+                <select name="dob_year" id="dobYear" class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none">
+                  <option value="" disabled selected>Year</option>
+                  <option value="2025">2025</option>
+                  <option value="2024">2024</option>
+                  <option value="2023">2023</option>
+                  <option value="2022">2022</option>
+                  <option value="2021">2021</option>
+                  <option value="2020">2020</option>
+                  <option value="2019">2019</option>
+                  <option value="2018">2018</option>
+                  <option value="2017">2017</option>
+                  <option value="2016">2016</option>
+                  <option value="2015">2015</option>
+                  <option value="2014">2014</option>
+                  <option value="2013">2013</option>
+                  <option value="2012">2012</option>
+                  <option value="2011">2011</option>
+                  <option value="2010">2010</option>
+                  <option value="2009">2009</option>
+                  <option value="2008">2008</option>
+                  <option value="2007">2007</option>
+                  <option value="2006">2006</option>
+                  <option value="2005">2005</option>
+                  <option value="2004">2004</option>
+                  <option value="2003">2003</option>
+                  <option value="2002">2002</option>
+                  <option value="2001">2001</option>
+                  <option value="2000">2000</option>
+                  <option value="1999">1999</option>
+                  <option value="1998">1998</option>
+                  <option value="1997">1997</option>
+                  <option value="1996">1996</option>
+                  <option value="1995">1995</option>
+                  <option value="1994">1994</option>
+                  <option value="1993">1993</option>
+                  <option value="1992">1992</option>
+                  <option value="1991">1991</option>
+                  <option value="1990">1990</option>
+                  <option value="1989">1989</option>
+                  <option value="1988">1988</option>
+                  <option value="1987">1987</option>
+                  <option value="1986">1986</option>
+                  <option value="1985">1985</option>
+                  <option value="1984">1984</option>
+                  <option value="1983">1983</option>
+                  <option value="1982">1982</option>
+                  <option value="1981">1981</option>
+                  <option value="1980">1980</option>
+                  <option value="1979">1979</option>
+                  <option value="1978">1978</option>
+                  <option value="1977">1977</option>
+                  <option value="1976">1976</option>
+                  <option value="1975">1975</option>
+                  <option value="1974">1974</option>
+                  <option value="1973">1973</option>
+                  <option value="1972">1972</option>
+                  <option value="1971">1971</option>
+                  <option value="1970">1970</option>
+                  <option value="1969">1969</option>
+                  <option value="1968">1968</option>
+                  <option value="1967">1967</option>
+                  <option value="1966">1966</option>
+                  <option value="1965">1965</option>
+                  <option value="1964">1964</option>
+                  <option value="1963">1963</option>
+                  <option value="1962">1962</option>
+                  <option value="1961">1961</option>
+                  <option value="1960">1960</option>
+                  <option value="1959">1959</option>
+                  <option value="1958">1958</option>
+                  <option value="1957">1957</option>
+                  <option value="1956">1956</option>
+                  <option value="1955">1955</option>
+                  <option value="1954">1954</option>
+                  <option value="1953">1953</option>
+                  <option value="1952">1952</option>
+                  <option value="1951">1951</option>
+                  <option value="1950">1950</option>
+                  <option value="1949">1949</option>
+                  <option value="1948">1948</option>
+                  <option value="1947">1947</option>
+                  <option value="1946">1946</option>
+                  <option value="1945">1945</option>
+                  <option value="1944">1944</option>
+                  <option value="1943">1943</option>
+                  <option value="1942">1942</option>
+                  <option value="1941">1941</option>
+                  <option value="1940">1940</option>
+                  <option value="1939">1939</option>
+                  <option value="1938">1938</option>
+                  <option value="1937">1937</option>
+                  <option value="1936">1936</option>
+                  <option value="1935">1935</option>
+                  <option value="1934">1934</option>
+                  <option value="1933">1933</option>
+                  <option value="1932">1932</option>
+                  <option value="1931">1931</option>
+                  <option value="1930">1930</option>
+                  <option value="1929">1929</option>
+                  <option value="1928">1928</option>
+                  <option value="1927">1927</option>
+                  <option value="1926">1926</option>
+                  <option value="1925">1925</option>
+                  <option value="1924">1924</option>
+                  <option value="1923">1923</option>
+                  <option value="1922">1922</option>
+                  <option value="1921">1921</option>
+                  <option value="1920">1920</option>
+                  <option value="1919">1919</option>
+                  <option value="1918">1918</option>
+                  <option value="1917">1917</option>
+                  <option value="1916">1916</option>
+                  <option value="1915">1915</option>
+                  <option value="1914">1914</option>
+                  <option value="1913">1913</option>
+                  <option value="1912">1912</option>
+                  <option value="1911">1911</option>
+                  <option value="1910">1910</option>
+                  <option value="1909">1909</option>
+                  <option value="1908">1908</option>
+                  <option value="1907">1907</option>
+                  <option value="1906">1906</option>
+                  <option value="1905">1905</option>
+                  <option value="1904">1904</option>
+                  <option value="1903">1903</option>
+                  <option value="1902">1902</option>
+                  <option value="1901">1901</option>
+                  <option value="1900">1900</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div>
+              <label class="block text-[13px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-3">Gender</label>
+              <select name="gender" id="gender" class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none">
+                <option value="" disabled selected>Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Prefer not to say">Prefer not to say</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[13px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-3">Civil Status</label>
+              <select name="civil_status" id="civilStatus" class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none">
+                <option value="" disabled selected>Select Status</option>
+                <option value="Single">Single</option>
+                <option value="Married">Married</option>
+                <option value="Divorced">Divorced</option>
+                <option value="Widowed">Widowed</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mb-8">
+            <label class="block text-[13px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-3">Contact</label>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <input type="text" name="contact_person" id="contactPerson" placeholder="Contact Person" class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)]" />
+              </div>
+              <div>
+                <input type="tel" name="contact_number" id="contactNumber" placeholder="Contact Number" class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)]" />
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-8">
+            <label class="block text-[13px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-3">Academic Information</label>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <select name="college" id="college" class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none">
+                  <option value="" disabled selected>College</option>
+                  <option value="College of Computing Studies" selected>College of Computing Studies</option>
+                </select>
+              </div>
+              <div>
+                <select name="department" id="department" class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none">
+                  <option value="" disabled selected>Department</option>
+                  <option value="Information Technology">Information Technology</option>
+                  <option value="Computer Science">Computer Science</option>
+                  <option value="ACT Application Development">ACT Application Development</option>
+                  <option value="ACT Networking">ACT Networking</option>
+                </select>
+              </div>
+              <div>
+                <select name="course" id="course" class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none">
+                  <option value="" disabled selected>Course</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <input type="hidden" name="date_of_birth" id="dateOfBirth">
+          <input type="hidden" name="email" id="hiddenEmail">
+          <input type="hidden" name="password" id="hiddenPassword">
+          <input type="hidden" name="confirm_password" id="hiddenConfirmPassword">
+
+          <div class="flex items-center justify-between mt-10 pt-4 border-t border-[#e0dbd4]">
+            <a href="{% url 'login_page' %}" class="text-[14px] text-[#7B1C24] hover:text-[#5A1219] font-medium flex items-center gap-2 transition-colors">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              Back to Login
+            </a>
+            
+            <div class="flex gap-3">
+              <button type="reset" class="px-6 py-3 bg-white text-[#6b6b6b] border-2 border-[#e0dbd4] rounded-lg font-dmsans text-[14px] font-semibold hover:bg-[#f5f5f5] transition-all">
+                Clear
+              </button>
+              <button type="button" id="nextBtn" class="px-8 py-3 bg-[#5A1219] text-white border-none rounded-lg font-dmsans text-[14px] font-semibold tracking-[0.04em] cursor-pointer flex items-center justify-center gap-2 transition-all hover:bg-[#9e2430] hover:shadow-[0_6px_20px_rgba(123,28,36,0.4)] active:scale-[0.985]">
+                <span>Next</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </form>
       </div>
     </div>
   </main>
 
-  <footer class="text-center p-3 text-[11px] text-white/20 relative z-[2]">© 2025 Western Mindanao State University — College of Computing Studies</footer>
+  <footer class="text-center p-3 text-[11px] text-white/20 relative z-[2] flex-shrink-0">© 2025 Western Mindanao State University — College of Computing Studies</footer>
 </div>
-
-<!-- Messages -->
-{% if messages %}
-<div class="fixed top-4 right-4 z-50">
-  {% for message in messages %}
-  <div class="bg-white rounded-lg shadow-lg p-4 mb-2 border-l-4 {% if message.tags == 'error' %}border-red-500{% else %}border-green-500{% endif %} animate-slideIn">
-    <p class="text-sm {% if message.tags == 'error' %}text-red-600{% else %}text-green-600{% endif %}">{{ message }}</p>
-  </div>
-  {% endfor %}
-</div>
-{% endif %}
 
 <script>
 (function() {
-  // Get modal elements
   const modalOverlay = document.getElementById('modalOverlay');
   const cancelModalBtn = document.getElementById('cancelModalBtn');
   const nextBtn = document.getElementById('nextBtn');
   const credentialForm = document.getElementById('credentialForm');
   const mainRegistrationForm = document.getElementById('registrationForm');
   
-  // Get form fields from main registration
   const firstName = document.getElementById('firstName');
   const lastName = document.getElementById('lastName');
   const department = document.getElementById('department');
@@ -340,16 +426,6 @@
   const dobYear = document.getElementById('dobYear');
   const dateOfBirth = document.getElementById('dateOfBirth');
   
-  // Remove any existing hidden fields first
-  const existingEmail = document.querySelector('input[name="email"]');
-  const existingPassword = document.querySelector('input[name="password"]');
-  const existingConfirm = document.querySelector('input[name="confirm_password"]');
-  
-  if (existingEmail && !existingEmail.id) existingEmail.remove();
-  if (existingPassword && !existingPassword.id) existingPassword.remove();
-  if (existingConfirm && !existingConfirm.id) existingConfirm.remove();
-  
-  // Course mapping based on department
   const courseMap = {
     'Information Technology': ['BS Information Technology'],
     'Computer Science': ['BS Computer Science'],
@@ -357,16 +433,11 @@
     'ACT Networking': ['Networking']
   };
   
-  // Update course dropdown based on department selection
   if (department) {
     department.addEventListener('change', function() {
       const selectedDept = this.value;
       const courseSelect = document.getElementById('course');
-      
-      // Clear current options
       courseSelect.innerHTML = '<option value="" disabled selected>Course</option>';
-      
-      // Add new options based on selected department
       if (selectedDept && courseMap[selectedDept]) {
         courseMap[selectedDept].forEach(courseName => {
           const option = document.createElement('option');
@@ -378,7 +449,6 @@
     });
   }
   
-  // Combine date fields before form submission
   function updateDateOfBirth() {
     if (dobDay.value && dobMonth.value && dobYear.value) {
       dateOfBirth.value = `${dobYear.value}-${dobMonth.value}-${dobDay.value}`;
@@ -386,42 +456,27 @@
   }
   
   [dobDay, dobMonth, dobYear].forEach(field => {
-    if (field) {
-      field.addEventListener('change', updateDateOfBirth);
-    }
+    if (field) field.addEventListener('change', updateDateOfBirth);
   });
   
-  // Show modal when Next is clicked
   if (nextBtn) {
     nextBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      
-      // Simple validation - check if required fields are filled
-      if (!firstName.value || !lastName.value || !department.value || !course.value) {
-        alert('Please fill in all required fields (First Name, Last Name, Department, and Course)');
+      if (!firstName.value || !lastName.value) {
+        alert('Please fill in First Name and Last Name');
         return;
       }
-      
-      // Update date of birth before showing modal
       updateDateOfBirth();
-      
       modalOverlay.classList.remove('hidden');
       modalOverlay.classList.add('flex');
-      
-      // Reset modal form
       document.getElementById('modalEmail').value = '';
       document.getElementById('modalPassword').value = '';
       document.getElementById('modalConfirmPassword').value = '';
-      
-      // Clear any previous messages
       const modalError = document.getElementById('modalError');
-      const modalSuccess = document.getElementById('modalSuccess');
       if (modalError) modalError.classList.add('hidden');
-      if (modalSuccess) modalSuccess.classList.add('hidden');
     });
   }
   
-  // Hide modal when cancel is clicked
   if (cancelModalBtn) {
     cancelModalBtn.addEventListener('click', () => {
       modalOverlay.classList.add('hidden');
@@ -429,7 +484,6 @@
     });
   }
   
-  // Hide modal when clicking outside
   if (modalOverlay) {
     modalOverlay.addEventListener('click', (e) => {
       if (e.target === modalOverlay) {
@@ -439,10 +493,9 @@
     });
   }
   
-  // Handle credential form submission
   if (credentialForm) {
     credentialForm.addEventListener('submit', function(e) {
-      e.preventDefault(); // Prevent default modal form submission
+      e.preventDefault();
       
       const email = document.getElementById('modalEmail').value.trim();
       const password = document.getElementById('modalPassword').value;
@@ -450,14 +503,12 @@
       const modalError = document.getElementById('modalError');
       const modalErrorText = document.getElementById('modalErrorText');
       
-      // Validate all fields are filled
       if (!email || !password || !confirmPassword) {
         modalErrorText.textContent = 'All fields are required';
         modalError.classList.remove('hidden');
         return;
       }
       
-      // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         modalErrorText.textContent = 'Please enter a valid email address';
@@ -465,23 +516,12 @@
         return;
       }
       
-      // Validate passwords match
       if (password !== confirmPassword) {
         modalErrorText.textContent = 'Passwords do not match';
         modalError.classList.remove('hidden');
         return;
       }
       
-      // Remove any existing hidden fields with these names
-      const oldEmail = document.querySelector('input[name="email"]');
-      const oldPassword = document.querySelector('input[name="password"]');
-      const oldConfirm = document.querySelector('input[name="confirm_password"]');
-      
-      if (oldEmail) oldEmail.remove();
-      if (oldPassword) oldPassword.remove();
-      if (oldConfirm) oldConfirm.remove();
-      
-      // Create and add hidden fields
       const emailField = document.createElement('input');
       emailField.type = 'hidden';
       emailField.name = 'email';
@@ -500,37 +540,16 @@
       confirmField.value = confirmPassword;
       mainRegistrationForm.appendChild(confirmField);
       
-      // Show success message
-      const modalSuccess = document.getElementById('modalSuccess');
-      const modalSuccessText = document.getElementById('modalSuccessText');
-      modalSuccessText.textContent = 'Account created successfully! Redirecting...';
-      modalSuccess.classList.remove('hidden');
-      
-      // Disable modal buttons
       const modalButtons = credentialForm.querySelectorAll('button');
       modalButtons.forEach(btn => btn.disabled = true);
       
-      // Submit the main form
-      setTimeout(() => {
-        mainRegistrationForm.submit();
-      }, 1500);
+      mainRegistrationForm.submit();
     });
-  }
-  
-  // Add smooth scroll for better UX on mobile
-  const mainContent = document.querySelector('main');
-  if (mainContent) {
-    mainContent.style.scrollBehavior = 'smooth';
   }
 })();
 </script>
 
 <style>
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-4px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  
   @keyframes slideIn {
     from { transform: translateX(100%); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
@@ -540,37 +559,15 @@
     animation: slideIn 0.3s ease-out;
   }
   
-  /* Custom scrollbar for the main content */
-  main::-webkit-scrollbar {
-    width: 8px;
-  }
-  
-  main::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-  }
-  
-  main::-webkit-scrollbar-thumb {
-    background: rgba(123, 28, 36, 0.5);
-    border-radius: 10px;
-  }
-  
-  main::-webkit-scrollbar-thumb:hover {
-    background: rgba(123, 28, 36, 0.7);
-  }
-  
-  /* Input placeholder styling */
   input::placeholder, select:invalid {
     color: #a0a0a0;
     font-size: 14px;
   }
   
-  /* Focus styles */
   input:focus, select:focus {
     outline: none;
   }
   
-  /* Modal backdrop blur */
   #modalOverlay {
     backdrop-filter: blur(4px);
   }

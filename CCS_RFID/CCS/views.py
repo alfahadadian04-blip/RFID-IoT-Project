@@ -21,6 +21,18 @@ logger = logging.getLogger(__name__)
 # Simple in-memory storage for latest RFID (for claiming existing accounts)
 latest_rfid_tag = None
 
+
+def login_page(request):
+    """Single unified login page"""
+    # If user is already logged in, redirect to appropriate dashboard
+    if request.user.is_authenticated:
+        if request.user.user_type == 'admin':
+            return redirect('dashboard')
+        elif request.user.user_type == 'student':
+            return redirect('stud_dashboard')
+    return render(request, 'login.html')
+
+
 # ============================================
 # Validation function for Student ID and Email
 # ============================================
@@ -326,43 +338,39 @@ def claim_existing_account(request):
 
 
 def adminLogin(request):
-    if request.method == 'POST':
-        email = request.POST.get('username')
-        password = request.POST.get('password')
-        
-        user = authenticate(request, username=email, password=password)
-        
-        if user is not None:
-            if user.user_type == 'admin':
-                login(request, user)
-                messages.success(request, f'Welcome back, {user.first_name}!')
-                return redirect('dashboard')
-            else:
-                messages.error(request, 'This account is not an admin account.')
+    # Redirect if already logged in
+    if request.user.is_authenticated:
+        if request.user.user_type == 'admin':
+            return redirect('dashboard')
         else:
-            messages.error(request, 'Invalid email or password.')
+            return redirect('stud_dashboard')
     
-    return render(request, 'adminLogin.html', {})
+    # Redirect to unified login page
+    return redirect('login_page')
 
 
 def studentLogin(request):
-    if request.method == 'POST':
-        email = request.POST.get('username')
-        password = request.POST.get('password')
-        
-        user = authenticate(request, username=email, password=password)
-        
-        if user is not None:
-            if user.user_type == 'student':
-                login(request, user)
-                messages.success(request, f'Welcome back, {user.first_name}!')
-                return redirect('dashboard')
-            else:
-                messages.error(request, 'This account is not a student account.')
+    # Redirect if already logged in
+    if request.user.is_authenticated:
+        if request.user.user_type == 'student':
+            return redirect('stud_dashboard')
         else:
-            messages.error(request, 'Invalid email or password.')
+            return redirect('dashboard')
     
-    return render(request, 'studentLogin.html', {})
+    # Redirect to unified login page
+    return redirect('login_page')
+
+
+def studentLogin(request):
+    # Redirect if already logged in
+    if request.user.is_authenticated:
+        if request.user.user_type == 'student':
+            return redirect('stud_dashboard')
+        else:
+            return redirect('dashboard')
+    
+    # Redirect to unified login page instead of rendering a non-existent template
+    return redirect('login_page')
 
 
 def adminRegistration(request):
@@ -536,13 +544,14 @@ def schedule(request):
 def logout_view(request):
     logout(request)
     messages.success(request, 'You have been logged out successfully.')
-    return redirect('adminLogin')
+    return redirect('login_page')
+
 
 @login_required
 def get_upcoming_classes(request):
     """API endpoint to get classes that are starting soon"""
     from django.utils import timezone
-    from datetime import datetime, timedelta  # Add this import inside the function
+    from datetime import datetime, timedelta
     
     now = timezone.now()
     current_date = now.date()
@@ -574,7 +583,7 @@ def get_upcoming_classes(request):
         thresholds = [60, 30, 10]
         
         for threshold in thresholds:
-            if 0 < time_diff <= threshold + 5:  # Within threshold or slightly over
+            if 0 < time_diff <= threshold + 5:
                 notification_key = f'notified_{class_obj.id}_{threshold}'
                 
                 if not request.session.get(notification_key, False):
@@ -594,6 +603,7 @@ def get_upcoming_classes(request):
         'success': True,
         'notifications': upcoming_notifications
     })
+
 
 @login_required
 def dismiss_notification(request):
@@ -615,3 +625,60 @@ def dismiss_notification(request):
             return JsonResponse({'error': str(e)}, status=500)
     
     return JsonResponse({'error': 'Method not allowed'}, status=400)
+
+
+@csrf_exempt
+def api_login(request):
+    """API endpoint for login"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('email')
+            password = data.get('password')
+            
+            user = authenticate(request, username=email, password=password)
+            
+            if user is not None:
+                login(request, user)
+                # Check user type and redirect accordingly
+                if user.user_type == 'superadmin':
+                    return JsonResponse({
+                        'success': True,
+                        'user_type': user.user_type,
+                        'redirect_url': '/dashboard/'
+                    })
+                elif user.user_type == 'admin':
+                    return JsonResponse({
+                        'success': True,
+                        'user_type': user.user_type,
+                        'redirect_url': '/dashboard/'
+                    })
+                elif user.user_type == 'student':
+                    return JsonResponse({
+                        'success': True,
+                        'user_type': user.user_type,
+                        'redirect_url': '/stud_dashboard/'
+                    })
+                else:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Unknown user type'
+                    }, status=401)
+            else:
+                return JsonResponse({'success': False, 'error': 'Invalid email or password'}, status=401)
+                
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+    return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+
+@csrf_exempt
+def clear_pending_rfid(request):
+    """Clear pending RFID registration"""
+    if request.method == 'POST':
+        try:
+            PendingRFID.objects.all().delete()
+            return JsonResponse({'success': True, 'message': 'Pending registrations cleared'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Method not allowed'}, status=405)

@@ -9,4 +9,9 @@ urlpatterns = [
     path('student_view_class/', views.student_view_class, name='student_view_class'),
     path('api/activity-log/', views.get_activity_log, name='get_activity_log'),
     path('api/update-attendance-status/', views.update_attendance_status, name='update_attendance_status'),
+    
+    # Superadmin URLs
+    path('user-management/', views.user_management, name='user_management'),
+    path('edit-student/<int:user_id>/', views.edit_student, name='edit_student'),
+    path('user/delete/<int:user_id>/', views.delete_user, name='delete_user'),
 ]

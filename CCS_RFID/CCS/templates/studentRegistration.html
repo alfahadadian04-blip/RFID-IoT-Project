@@ -36,12 +36,31 @@
     .animate-cardIn { animation: cardIn 0.55s cubic-bezier(0.16,1,0.3,1) both; }
     .animate-modalIn { animation: modalIn 0.3s ease-out; }
     .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    
+    /* Custom scrollbar */
+    .custom-scroll::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+    }
+    
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(123, 28, 36, 0.5);
+      border-radius: 10px;
+    }
+    
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(123, 28, 36, 0.7);
+    }
   </style>
 </head>
-<body class="h-full font-dmsans bg-[#1a0a0c] overflow-hidden">
+<body class="h-screen font-dmsans bg-[#1a0a0c] overflow-hidden flex flex-col">
 
 <!-- BACKGROUND -->
-<div class="fixed inset-0 bg-[#2a1015] overflow-hidden">
+<div class="fixed inset-0 bg-[#2a1015] overflow-hidden z-0">
   <div class="absolute inset-0 bg-gradient-to-br from-[#500f16]/55 to-[#14080a]/70 bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(255,255,255,0.015)_2px,rgba(255,255,255,0.015)_4px)]"></div>
   
   <div class="absolute w-[520px] h-[420px] bg-[#7B1C24] rounded-full blur-[80px] opacity-35 -top-[100px] -left-[120px] animate-drift"></div>
@@ -103,7 +122,7 @@
   </div>
 </div>
 
-<!-- RFID SCANNING MODAL - AUTOMATIC VERSION -->
+<!-- RFID SCANNING MODAL -->
 <div id="rfidModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
   <div class="bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.3)] w-full max-w-md p-8 animate-modalIn">
     <div class="flex items-center gap-3 mb-6">
@@ -145,7 +164,7 @@
   </div>
 </div>
 
-<!-- EXISTING ACCOUNT MODAL - RFID TAP VERSION -->
+<!-- EXISTING ACCOUNT MODAL -->
 <div id="existingAccountModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
   <div class="bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.3)] w-full max-w-md p-8 animate-modalIn">
     <div class="flex items-center gap-3 mb-6">
@@ -208,7 +227,7 @@
 </div>
 
 <!-- PAGE -->
-<div class="relative z-[2] min-h-screen flex flex-col">
+<div class="relative z-[2] flex flex-col h-full">
 
   <!-- HEADER -->
   <header class="bg-[#5A1219] flex items-center gap-[14px] px-6 h-14 shadow-[0_2px_12px_rgba(0,0,0,0.45)] flex-shrink-0">
@@ -222,254 +241,180 @@
     <h1 class="font-dmsans font-semibold text-[15px] text-white tracking-[0.02em]">Western Mindanao State University</h1>
   </header>
 
-  <!-- MAIN -->
-  <main class="flex-1 flex items-center justify-center p-6 py-8 overflow-y-auto">
-    <div class="bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.25),0_4px_12px_rgba(0,0,0,0.1)] w-full max-w-[900px] p-[32px_40px] border border-white/60 animate-cardIn my-4">
-      
-      <div class="flex items-center gap-4 mb-6">
-        <div class="w-14 h-14 rounded-full border-[2.5px] border-[#7B1C24] bg-[#f5f0eb] flex items-center justify-center flex-shrink-0 overflow-hidden">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#7B1C24" stroke-width="1.5" class="w-7 h-7">
-            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
-          </svg>
-        </div>
-        <div>
-          <span class="block font-dmsans text-[11px] font-medium text-[#7B1C24] uppercase tracking-[0.1em] mb-[3px]">College of Computing Studies</span>
-          <h2 class="font-playfair text-[24px] font-semibold text-[#1a1a1a] leading-tight">Student Registration</h2>
-        </div>
-      </div>
-
-      <p class="text-[#6b6b6b] text-[15px] mb-8 pb-2 border-b border-[#e0dbd4]">Please fill in your information</p>
-
-      {% if messages %}
-        {% for message in messages %}
-          <div class="mb-4 p-4 rounded-lg {% if message.tags == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}">
-            {{ message }}
-          </div>
-        {% endfor %}
-      {% endif %}
-
-      <form id="registrationForm" method="post" action="{% url 'studentRegistration' %}">
-        {% csrf_token %}
+  <!-- MAIN - SCROLLABLE -->
+  <main class="flex-1 overflow-y-auto custom-scroll">
+    <div class="flex items-center justify-center p-6 py-8 min-h-full">
+      <div class="bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.25),0_4px_12px_rgba(0,0,0,0.1)] w-full max-w-[900px] p-[32px_40px] border border-white/60 animate-cardIn my-4">
         
-        <!-- STUDENT ID FIELD -->
-        <div class="mb-8">
-          <label class="block text-[13px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-3">Student ID</label>
-          <div>
-            <input type="text" name="student_id" id="studentId" placeholder="YYYY-XXXXX (e.g., 2022-00779)" required 
-                   class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)]" 
-                   pattern="^\d{4}-\d{5}$"
-                   title="Student ID must be in format: YYYY-XXXXX (e.g., 2022-00779)" />
-            <p class="text-xs text-gray-500 mt-1">Format: YYYY-XXXXX (e.g., 2022-00779, 2023-02387)</p>
-            <div id="studentIdError" class="text-red-600 text-xs mt-1 hidden"></div>
-          </div>
-        </div>
-        
-        <div class="mb-8">
-          <label class="block text-[13px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-3">Your Name</label>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <input type="text" name="first_name" id="firstName" placeholder="First Name" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)]" />
-            </div>
-            <div>
-              <input type="text" name="middle_name" id="middleName" placeholder="Middle Name" class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)]" />
-            </div>
-            <div>
-              <input type="text" name="last_name" id="lastName" placeholder="Last Name" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)]" />
-            </div>
-          </div>
-        </div>
-
-        <!-- Date of Birth Section -->
-        <div class="mb-8">
-          <label class="block text-[13px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-3">Date of Birth</label>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <select name="dob_day" id="dobDay" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none">
-                <option value="" disabled selected>Day</option>
-                <option value="01">01</option>
-                <option value="02">02</option>
-                <option value="03">03</option>
-                <option value="04">04</option>
-                <option value="05">05</option>
-                <option value="06">06</option>
-                <option value="07">07</option>
-                <option value="08">08</option>
-                <option value="09">09</option>
-                <option value="10">10</option>
-                <option value="11">11</option>
-                <option value="12">12</option>
-                <option value="13">13</option>
-                <option value="14">14</option>
-                <option value="15">15</option>
-                <option value="16">16</option>
-                <option value="17">17</option>
-                <option value="18">18</option>
-                <option value="19">19</option>
-                <option value="20">20</option>
-                <option value="21">21</option>
-                <option value="22">22</option>
-                <option value="23">23</option>
-                <option value="24">24</option>
-                <option value="25">25</option>
-                <option value="26">26</option>
-                <option value="27">27</option>
-                <option value="28">28</option>
-                <option value="29">29</option>
-                <option value="30">30</option>
-                <option value="31">31</option>
-              </select>
-            </div>
-            <div>
-              <select name="dob_month" id="dobMonth" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none">
-                <option value="" disabled selected>Month</option>
-                <option value="01">January</option>
-                <option value="02">February</option>
-                <option value="03">March</option>
-                <option value="04">April</option>
-                <option value="05">May</option>
-                <option value="06">June</option>
-                <option value="07">July</option>
-                <option value="08">August</option>
-                <option value="09">September</option>
-                <option value="10">October</option>
-                <option value="11">November</option>
-                <option value="12">December</option>
-              </select>
-            </div>
-            <div>
-              <select name="dob_year" id="dobYear" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none">
-                <option value="" disabled selected>Year</option>
-                <option value="2025">2025</option>
-                <option value="2024">2024</option>
-                <option value="2023">2023</option>
-                <option value="2022">2022</option>
-                <option value="2021">2021</option>
-                <option value="2020">2020</option>
-                <option value="2019">2019</option>
-                <option value="2018">2018</option>
-                <option value="2017">2017</option>
-                <option value="2016">2016</option>
-                <option value="2015">2015</option>
-                <option value="2014">2014</option>
-                <option value="2013">2013</option>
-                <option value="2012">2012</option>
-                <option value="2011">2011</option>
-                <option value="2010">2010</option>
-                <option value="2009">2009</option>
-                <option value="2008">2008</option>
-                <option value="2007">2007</option>
-                <option value="2006">2006</option>
-                <option value="2005">2005</option>
-                <option value="2004">2004</option>
-                <option value="2003">2003</option>
-                <option value="2002">2002</option>
-                <option value="2001">2001</option>
-                <option value="2000">2000</option>
-                <option value="1999">1999</option>
-                <option value="1998">1998</option>
-                <option value="1997">1997</option>
-                <option value="1996">1996</option>
-                <option value="1995">1995</option>
-                <option value="1994">1994</option>
-                <option value="1993">1993</option>
-                <option value="1992">1992</option>
-                <option value="1991">1991</option>
-                <option value="1990">1990</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <div>
-            <label class="block text-[13px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-3">Gender</label>
-            <select name="gender" id="gender" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none">
-              <option value="" disabled selected>Select Gender</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Prefer not to say">Prefer not to say</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-[13px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-3">Civil Status</label>
-            <select name="civil_status" id="civilStatus" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none">
-              <option value="" disabled selected>Select Status</option>
-              <option value="Single">Single</option>
-              <option value="Married">Married</option>
-              <option value="Divorced">Divorced</option>
-              <option value="Widowed">Widowed</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="mb-8">
-          <label class="block text-[13px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-3">Contact</label>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <input type="text" name="contact_person" id="contactPerson" placeholder="Contact Person" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)]" />
-            </div>
-            <div>
-              <input type="tel" name="contact_number" id="contactNumber" placeholder="Contact Number" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)]" />
-            </div>
-          </div>
-        </div>
-
-        <div class="mb-8">
-          <label class="block text-[13px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-3">Academic Information</label>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <select name="college" id="college" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none">
-                <option value="" disabled selected>College</option>
-                <option value="College of Computing Studies" selected>College of Computing Studies</option>
-              </select>
-            </div>
-            <div>
-              <select name="department" id="department" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none">
-                <option value="" disabled selected>Department</option>
-                <option value="Information Technology">Information Technology</option>
-                <option value="Computer Science">Computer Science</option>
-                <option value="ACT Application Development">ACT Application Development</option>
-                <option value="ACT Networking">ACT Networking</option>
-              </select>
-            </div>
-            <div>
-              <select name="course" id="course" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none">
-                <option value="" disabled selected>Course</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <input type="hidden" name="date_of_birth" id="dateOfBirth">
-        <input type="hidden" name="email" id="hiddenEmail">
-        <input type="hidden" name="password" id="hiddenPassword">
-        <input type="hidden" name="confirm_password" id="hiddenConfirmPassword">
-
-        <div class="flex items-center justify-between mt-10 pt-4 border-t border-[#e0dbd4]">
-          <a href="{% url 'studentLogin' %}" class="text-[14px] text-[#7B1C24] hover:text-[#5A1219] font-medium flex items-center gap-2 transition-colors">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
+        <div class="flex items-center gap-4 mb-6">
+          <div class="w-14 h-14 rounded-full border-[2.5px] border-[#7B1C24] bg-[#f5f0eb] flex items-center justify-center flex-shrink-0 overflow-hidden">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#7B1C24" stroke-width="1.5" class="w-7 h-7">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
             </svg>
-            Back to Login
-          </a>
-          
-          <div class="flex gap-3">
-            <button type="reset" class="px-6 py-3 bg-white text-[#6b6b6b] border-2 border-[#e0dbd4] rounded-lg font-dmsans text-[14px] font-semibold hover:bg-[#f5f5f5] transition-all">
-              Clear
-            </button>
-            <button type="button" id="nextBtn" class="px-8 py-3 bg-[#5A1219] text-white border-none rounded-lg font-dmsans text-[14px] font-semibold tracking-[0.04em] cursor-pointer flex items-center justify-center gap-2 transition-all hover:bg-[#9e2430] hover:shadow-[0_6px_20px_rgba(123,28,36,0.4)] active:scale-[0.985]">
-              <span>Next</span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
-                <path d="M5 12h14M12 5l7 7-7 7"/>
-              </svg>
-            </button>
+          </div>
+          <div>
+            <span class="block font-dmsans text-[11px] font-medium text-[#7B1C24] uppercase tracking-[0.1em] mb-[3px]">College of Computing Studies</span>
+            <h2 class="font-playfair text-[24px] font-semibold text-[#1a1a1a] leading-tight">Student Registration</h2>
           </div>
         </div>
-      </form>
+
+        <p class="text-[#6b6b6b] text-[15px] mb-8 pb-2 border-b border-[#e0dbd4]">Please fill in your information</p>
+
+        {% if messages %}
+          {% for message in messages %}
+            <div class="mb-4 p-4 rounded-lg {% if message.tags == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+
+        <form id="registrationForm" method="post" action="{% url 'studentRegistration' %}">
+          {% csrf_token %}
+          
+          <!-- STUDENT ID FIELD -->
+          <div class="mb-8">
+            <label class="block text-[13px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-3">Student ID</label>
+            <div>
+              <input type="text" name="student_id" id="studentId" placeholder="YYYY-XXXXX (e.g., 2022-00779)" required 
+                     class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)]" 
+                     pattern="^\d{4}-\d{5}$"
+                     title="Student ID must be in format: YYYY-XXXXX (e.g., 2022-00779)" />
+              <p class="text-xs text-gray-500 mt-1">Format: YYYY-XXXXX (e.g., 2022-00779, 2023-02387)</p>
+              <div id="studentIdError" class="text-red-600 text-xs mt-1 hidden"></div>
+            </div>
+          </div>
+          
+          <div class="mb-8">
+            <label class="block text-[13px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-3">Your Name</label>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <input type="text" name="first_name" id="firstName" placeholder="First Name" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)]" />
+              </div>
+              <div>
+                <input type="text" name="middle_name" id="middleName" placeholder="Middle Name" class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)]" />
+              </div>
+              <div>
+                <input type="text" name="last_name" id="lastName" placeholder="Last Name" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)]" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Date of Birth Section -->
+          <div class="mb-8">
+            <label class="block text-[13px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-3">Date of Birth</label>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <select name="dob_day" id="dobDay" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none">
+                  <option value="" disabled selected>Day</option>
+                  <option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option>
+                </select>
+              </div>
+              <div>
+                <select name="dob_month" id="dobMonth" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none">
+                  <option value="" disabled selected>Month</option>
+                  <option value="01">January</option><option value="02">February</option><option value="03">March</option><option value="04">April</option><option value="05">May</option><option value="06">June</option><option value="07">July</option><option value="08">August</option><option value="09">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                </select>
+              </div>
+              <div>
+                <select name="dob_year" id="dobYear" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none">
+                  <option value="" disabled selected>Year</option>
+                  <option value="2025">2025</option><option value="2024">2024</option><option value="2023">2023</option><option value="2022">2022</option><option value="2021">2021</option><option value="2020">2020</option><option value="2019">2019</option><option value="2018">2018</option><option value="2017">2017</option><option value="2016">2016</option><option value="2015">2015</option><option value="2014">2014</option><option value="2013">2013</option><option value="2012">2012</option><option value="2011">2011</option><option value="2010">2010</option><option value="2009">2009</option><option value="2008">2008</option><option value="2007">2007</option><option value="2006">2006</option><option value="2005">2005</option><option value="2004">2004</option><option value="2003">2003</option><option value="2002">2002</option><option value="2001">2001</option><option value="2000">2000</option><option value="1999">1999</option><option value="1998">1998</option><option value="1997">1997</option><option value="1996">1996</option><option value="1995">1995</option><option value="1994">1994</option><option value="1993">1993</option><option value="1992">1992</option><option value="1991">1991</option><option value="1990">1990</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div>
+              <label class="block text-[13px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-3">Gender</label>
+              <select name="gender" id="gender" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none">
+                <option value="" disabled selected>Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Prefer not to say">Prefer not to say</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[13px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-3">Civil Status</label>
+              <select name="civil_status" id="civilStatus" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none">
+                <option value="" disabled selected>Select Status</option>
+                <option value="Single">Single</option>
+                <option value="Married">Married</option>
+                <option value="Divorced">Divorced</option>
+                <option value="Widowed">Widowed</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mb-8">
+            <label class="block text-[13px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-3">Contact</label>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <input type="text" name="contact_person" id="contactPerson" placeholder="Contact Person" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)]" />
+              </div>
+              <div>
+                <input type="tel" name="contact_number" id="contactNumber" placeholder="Contact Number" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)]" />
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-8">
+            <label class="block text-[13px] font-semibold text-[#6b6b6b] uppercase tracking-[0.08em] mb-3">Academic Information</label>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <select name="college" id="college" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none">
+                  <option value="" disabled selected>College</option>
+                  <option value="College of Computing Studies" selected>College of Computing Studies</option>
+                </select>
+              </div>
+              <div>
+                <select name="department" id="department" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none">
+                  <option value="" disabled selected>Department</option>
+                  <option value="Information Technology">Information Technology</option>
+                  <option value="Computer Science">Computer Science</option>
+                  <option value="ACT Application Development">ACT Application Development</option>
+                  <option value="ACT Networking">ACT Networking</option>
+                </select>
+              </div>
+              <div>
+                <select name="course" id="course" required class="w-full py-3 px-4 border-[1.5px] border-[#e0dbd4] rounded-lg font-dmsans text-[14px] text-[#1a1a1a] bg-white outline-none transition-all focus:border-[#7B1C24] focus:shadow-[0_0_0_3px_rgba(123,28,36,0.1)] appearance-none">
+                  <option value="" disabled selected>Course</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <input type="hidden" name="date_of_birth" id="dateOfBirth">
+          <input type="hidden" name="email" id="hiddenEmail">
+          <input type="hidden" name="password" id="hiddenPassword">
+          <input type="hidden" name="confirm_password" id="hiddenConfirmPassword">
+
+          <div class="flex items-center justify-between mt-10 pt-4 border-t border-[#e0dbd4]">
+            <a href="{% url 'studentLogin' %}" class="text-[14px] text-[#7B1C24] hover:text-[#5A1219] font-medium flex items-center gap-2 transition-colors">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              Back to Login
+            </a>
+            
+            <div class="flex gap-3">
+              <button type="reset" class="px-6 py-3 bg-white text-[#6b6b6b] border-2 border-[#e0dbd4] rounded-lg font-dmsans text-[14px] font-semibold hover:bg-[#f5f5f5] transition-all">
+                Clear
+              </button>
+              <button type="button" id="nextBtn" class="px-8 py-3 bg-[#5A1219] text-white border-none rounded-lg font-dmsans text-[14px] font-semibold tracking-[0.04em] cursor-pointer flex items-center justify-center gap-2 transition-all hover:bg-[#9e2430] hover:shadow-[0_6px_20px_rgba(123,28,36,0.4)] active:scale-[0.985]">
+                <span>Next</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
   </main>
 
-  <footer class="text-center p-3 text-[11px] text-white/20 relative z-[2]">© 2025 Western Mindanao State University — College of Computing Studies</footer>
+  <footer class="text-center p-3 text-[11px] text-white/20 relative z-[2] flex-shrink-0">© 2025 Western Mindanao State University — College of Computing Studies</footer>
 </div>
 
 <script>
@@ -980,24 +925,6 @@
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-4px); }
     to { opacity: 1; transform: translateY(0); }
-  }
-  
-  main::-webkit-scrollbar {
-    width: 8px;
-  }
-  
-  main::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-  }
-  
-  main::-webkit-scrollbar-thumb {
-    background: rgba(123, 28, 36, 0.5);
-    border-radius: 10px;
-  }
-  
-  main::-webkit-scrollbar-thumb:hover {
-    background: rgba(123, 28, 36, 0.7);
   }
   
   input::placeholder, select:invalid {

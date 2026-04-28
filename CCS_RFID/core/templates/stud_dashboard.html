@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}My Subjects - Attendance Tracker System{% endblock %}
+{% block title %}Student Dashboard - Attendance Tracker System{% endblock %}
 
 {% block content %}
 <!-- Welcome Banner -->
@@ -10,10 +10,10 @@
 
   <div class="relative z-10 p-6 md:p-7">
     <h1 class="text-white text-2xl md:text-3xl font-bold tracking-tight mb-1">
-      Hello {{ user.get_full_name|default:"Student Name" }}
+      Hello {{ user.get_full_name|default:user.email }}
     </h1>
     <p class="text-white/70 text-sm font-medium mb-1">
-      Student ID: {{ user.id }}
+      Student ID: {{ user.student_id|default:"Not assigned" }}
     </p>
     <p class="text-white/50 text-xs mb-5">
       Track your attendance and subject status here.<br>
@@ -23,7 +23,62 @@
 </div>
 
 <!-- Stats Cards -->
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+  <!-- Total Subjects -->
+  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center justify-between">
+    <div>
+      <p class="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-3">Total Subjects</p>
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-maroon/10 rounded-lg flex items-center justify-center">
+          <svg class="w-5 h-5 text-maroon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="text-right">
+      <p class="text-4xl font-bold text-gray-800 leading-none">{{ total_subjects|default:"0" }}</p>
+      <p class="text-xs text-gray-400 mt-1">enrolled subjects</p>
+    </div>
+  </div>
+
+  <!-- Total Units -->
+  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center justify-between">
+    <div>
+      <p class="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-3">Total Units</p>
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+          <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M12 6.25278V19.2528M12 6.25278C10.8321 5.47686 9.24649 5 7.5 5C5.75351 5 4.16789 5.47686 3 6.25278M12 6.25278C13.1679 5.47686 14.7535 5 16.5 5C18.2465 5 19.8321 5.47686 21 6.25278"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="text-right">
+      <p class="text-4xl font-bold text-gray-800 leading-none">{{ total_units|default:"0" }}</p>
+      <p class="text-xs text-gray-400 mt-1">total units</p>
+    </div>
+  </div>
+
+  <!-- Subjects at Risk -->
+  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center justify-between">
+    <div>
+      <p class="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-3">At Risk Subjects</p>
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+          <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="text-right">
+      <p class="text-4xl font-bold text-yellow-600 leading-none">{{ at_risk_count|default:"0" }}</p>
+      <p class="text-xs text-gray-400 mt-1">subjects at risk</p>
+    </div>
+  </div>
+
   <!-- Dropped Subjects -->
   <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center justify-between">
     <div>
@@ -37,26 +92,8 @@
       </div>
     </div>
     <div class="text-right">
-      <p class="text-4xl font-bold text-gray-800 leading-none">{{ dropped_count|default:"0" }}</p>
+      <p class="text-4xl font-bold text-red-600 leading-none">{{ dropped_count|default:"0" }}</p>
       <p class="text-xs text-gray-400 mt-1">subjects dropped</p>
-    </div>
-  </div>
-
-  <!-- At Risk Subjects -->
-  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center justify-between">
-    <div>
-      <p class="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-3">At Risk Subjects</p>
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-          <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-          </svg>
-        </div>
-      </div>
-    </div>
-    <div class="text-right">
-      <p class="text-4xl font-bold text-gray-800 leading-none">{{ at_risk_count|default:"0" }}</p>
-      <p class="text-xs text-gray-400 mt-1">4/5 absences</p>
     </div>
   </div>
 </div>
@@ -92,8 +129,16 @@
             <p class="text-xs text-gray-400">({{ subject.code }})</p>
           </div>
           <p class="text-xs text-gray-500 mt-1">
-            <span class="font-medium">Schedule:</span> {{ subject.schedule_day }} | {{ subject.schedule_time }}
+            <span class="font-medium">Schedule:</span> {{ subject.schedule_day }} | {{ subject.time_start|time:"g:i A" }} - {{ subject.time_end|time:"g:i A" }}
           </p>
+          <div class="flex items-center gap-3 mt-1">
+            <p class="text-xs text-gray-500">
+              <span class="font-medium">Room:</span> {{ subject.room|default:"TBA" }}
+            </p>
+            <p class="text-xs text-gray-500">
+              <span class="font-medium">Units:</span> {% if subject.units %}{{ subject.units|floatformat:0 }}{% else %}3{% endif %}
+            </p>
+          </div>
         </div>
 
         <!-- Absences -->
@@ -116,7 +161,7 @@
             </div>
           </div>
           {% if subject.absence_count >= 4 and subject.absence_count < 5 %}
-          <p class="text-xs text-yellow-600 font-medium mt-1">⚠️ WARNING: 1 absence left before dropping!</p>
+          <p class="text-xs text-yellow-600 font-medium mt-1">⚠️ WARNING: {{ subject.absences_left }} absence left before dropping!</p>
           {% elif subject.absence_count >= 5 %}
           <p class="text-xs text-red-600 font-medium mt-1">❌ DROPPED due to 5 absences</p>
           {% endif %}
@@ -135,15 +180,10 @@
               Locked
             </span>
           {% else %}
-            <span class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-100 text-green-700">
-              ENROLLED
-            </span>
-            <span class="text-xs text-maroon font-medium">
-              <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-              </svg>
-              Active
-            </span>
+            <a href="{% url 'student_view_class' %}?class_id={{ subject.id }}" 
+               class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-maroon text-white hover:bg-maroon-light transition">
+              View Details
+            </a>
           {% endif %}
         </div>
       </div>
@@ -172,7 +212,7 @@
     </div>
     <div class="flex items-center gap-2">
       <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
-      <span class="text-gray-600">At risk (4/5 absences)</span>
+      <span class="text-gray-600">At risk (4+ absences)</span>
     </div>
   </div>
 </div>

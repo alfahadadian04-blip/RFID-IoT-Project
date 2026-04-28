@@ -216,7 +216,34 @@
 
       <!-- Nav items based on user type -->
       <nav class="flex flex-col pt-2 pb-4 gap-0.5 flex-1">
-        {% if user.user_type == 'admin' %}
+        {% if user.user_type == 'superadmin' %}
+          <!-- SUPERADMIN NAVIGATION -->
+          <a href="{% url 'dashboard' %}" data-page="dashboard"
+             class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %} flex items-center gap-3 px-4 py-3 text-white text-sm font-medium cursor-pointer transition-colors rounded-sm mx-1">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+            Dashboard
+          </a>
+
+          <a href="{% url 'user_management' %}" data-page="user_management"
+             class="nav-item {% if request.resolver_match.url_name == 'user_management' %}active{% endif %} flex items-center gap-3 px-4 py-3 text-white/80 text-sm font-medium cursor-pointer transition-colors rounded-sm mx-1 hover:text-white">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+            User Management
+          </a>
+
+          <a href="{% url 'activity' %}" data-page="activity"
+             class="nav-item {% if request.resolver_match.url_name == 'activity' %}active{% endif %} flex items-center gap-3 px-4 py-3 text-white/80 text-sm font-medium cursor-pointer transition-colors rounded-sm mx-1 hover:text-white">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            Activity Log
+          </a>
+
+        {% elif user.user_type == 'admin' %}
           <!-- ADMIN NAVIGATION -->
           <a href="{% url 'dashboard' %}" data-page="dashboard"
              class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %} flex items-center gap-3 px-4 py-3 text-white text-sm font-medium cursor-pointer transition-colors rounded-sm mx-1">
@@ -252,6 +279,7 @@
             </svg>
             Schedule
           </a>
+          
         {% elif user.user_type == 'student' %}
           <!-- STUDENT NAVIGATION -->
           <a href="{% url 'stud_dashboard' %}" data-page="student_dashboard"
@@ -291,7 +319,9 @@
           <div class="min-w-0">
             <p class="text-white text-xs font-semibold truncate">{% block user_full_name %}{{ user.get_full_name }}{% endblock %}</p>
             <p class="text-white/50 text-[10px] truncate">
-              {% if user.user_type == 'admin' %}Admin{% else %}Student{% endif %}
+              {% if user.user_type == 'superadmin' %}Super Admin
+              {% elif user.user_type == 'admin' %}Admin
+              {% else %}Student{% endif %}
             </p>
           </div>
         </div>
@@ -558,8 +588,8 @@
       });
     }
 
-    // Start checking for upcoming classes every 30 seconds if user is admin/teacher
-    {% if user.user_type == 'admin' %}
+    // Start checking for upcoming classes every 30 seconds if user is admin/teacher or superadmin
+    {% if user.user_type == 'admin' or user.user_type == 'superadmin' %}
     if (document.getElementById('notificationBell')) {
       checkUpcomingClasses();
       notificationCheckInterval = setInterval(checkUpcomingClasses, 30000);
