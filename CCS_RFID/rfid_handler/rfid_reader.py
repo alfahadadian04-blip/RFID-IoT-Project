@@ -1,14 +1,49 @@
 import serial
+import serial.tools.list_ports
 import requests
 import time
 import re
 import threading
 
 # CONFIGURATION
-ARDUINO_PORT = 'COM4'
 BAUD_RATE = 9600
 DJANGO_URL = 'http://127.0.0.1:8000'
 PENDING_TIMEOUT = 300  # 5 minutes timeout for pending registration
+
+# Auto-detect Arduino port
+def find_arduino_port():
+    """Automatically find and return the Arduino port"""
+    print("Scanning for Arduino...")
+    ports = serial.tools.list_ports.comports()
+    
+    for port in ports:
+        print(f"  Checking: {port.device} - {port.description}")
+        if 'Arduino' in port.description or 'USB Serial' in port.description:
+            print(f"✓ Found Arduino on {port.device}")
+            return port.device
+    
+    # If no Arduino found, try common ports
+    common_ports = ['COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'COM10']
+    print("Trying common ports...")
+    for port in common_ports:
+        try:
+            test_serial = serial.Serial(port, BAUD_RATE, timeout=1)
+            test_serial.close()
+            print(f"✓ Found Arduino on {port}")
+            return port
+        except:
+            continue
+    
+    print("❌ Could not find Arduino. Please check connection.")
+    return None
+
+# Get Arduino port automatically
+ARDUINO_PORT = find_arduino_port()
+if ARDUINO_PORT is None:
+    print("Please connect your Arduino and try again.")
+    exit(1)
+
+print(f"Using port: {ARDUINO_PORT}")
 
 def get_active_session():
     """Check if there's an active class session"""
