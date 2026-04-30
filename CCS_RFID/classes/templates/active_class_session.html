@@ -46,6 +46,7 @@
   
   .modal-success .modal-icon { background: linear-gradient(135deg, #10b981, #059669); }
   .modal-warning .modal-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
+  .modal-error .modal-icon { background: linear-gradient(135deg, #dc2626, #991b1b); }
   
   .modal-icon {
     width: 80px;
@@ -67,10 +68,11 @@
   .live-pulse { animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
   .student-row-present { background-color: #ecfdf5; }
   .student-row-late { background-color: #fffbeb; }
+  .student-row-dropped { background-color: #fef2f2; }
 </style>
 
 <div id="attendanceModal" class="attendance-modal">
-  <div class="modal-content">
+  <div class="modal-content" id="modalContent">
     <div class="modal-icon" id="modalIcon">
       <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/></svg>
     </div>
@@ -153,7 +155,7 @@
 <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-5">
   <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
     <p class="text-gray-500 text-xs font-semibold uppercase mb-2">Total Students</p>
-    <p class="text-3xl font-bold text-gray-800">{{ total_students }}</p>
+    <p class="text-3xl font-bold text-gray-800" id="totalStudents">{{ total_students }}</p>
   </div>
   <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
     <p class="text-gray-500 text-xs font-semibold uppercase mb-2">Present</p>
@@ -185,7 +187,7 @@
       </thead>
       <tbody id="attendanceTableBody">
         {% for student in students %}
-        <tr class="hover:bg-gray-50" data-student-id="{{ student.id }}" data-student-name="{{ student.name }}">
+        <tr class="hover:bg-gray-50" data-student-id="{{ student.id }}" data-student-name="{{ student.name }}" data-student-status="{{ student.status|default:'enrolled' }}">
           <td class="px-6 py-3 text-sm text-gray-500">{{ forloop.counter }}</td>
           <td class="px-6 py-3">{{ student.name }}</td>
           <td class="px-6 py-3 text-sm text-gray-600">{{ student.student_id }}</td>
@@ -194,6 +196,8 @@
               <span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">✅ Present</span>
             {% elif student.status == 'late' %}
               <span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">⚠️ Late</span>
+            {% elif student.status == 'dropped' %}
+              <span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">❌ Dropped</span>
             {% else %}
               <span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">⏳ Not yet tapped</span>
             {% endif %}
@@ -217,28 +221,52 @@
   
   // Initialize previous attendance from initial data
   {% for student in students %}
-    previousAttendance[{{ student.id }}] = '{{ student.status|default:"absent" }}';
+    previousAttendance[{{ student.id }}] = '{{ student.status|default:"not_tapped" }}';
   {% endfor %}
   
-  function showModal(studentName, timeIn, status) {
+  function closeModal() {
+    const modal = document.getElementById('attendanceModal');
+    modal.classList.remove('active');
+  }
+  
+  function showModal(studentName, timeIn, status, isDropped, isNotEnrolled) {
     const modal = document.getElementById('attendanceModal');
     const modalMessage = document.getElementById('modalMessage');
     const modalTime = document.getElementById('modalTime');
     const modalTitle = document.getElementById('modalTitle');
     const modalIcon = document.getElementById('modalIcon');
+    const modalContent = document.getElementById('modalContent');
     
-    if (status === 'late') {
+    // Reset classes
+    modalContent.classList.remove('modal-success', 'modal-warning', 'modal-error');
+    
+    if (isDropped) {
+      modalTitle.innerHTML = '❌ Dropped!';
+      modalContent.classList.add('modal-error');
+      modalIcon.style.background = 'linear-gradient(135deg, #dc2626, #991b1b)';
+      modalMessage.innerHTML = studentName + ' has been DROPPED from this class!';
+      modalTime.innerHTML = '';
+    } 
+    else if (isNotEnrolled) {
+      modalTitle.innerHTML = '❌ Not Enrolled!';
+      modalContent.classList.add('modal-error');
+      modalIcon.style.background = 'linear-gradient(135deg, #dc2626, #991b1b)';
+      modalMessage.innerHTML = studentName + ' is NOT ENROLLED in this class!';
+      modalTime.innerHTML = '';
+    }
+    else if (status === 'late') {
       modalTitle.innerHTML = '⚠️ Late!';
+      modalContent.classList.add('modal-warning');
       modalIcon.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
       modalMessage.innerHTML = studentName + ' tapped their ID but was LATE!';
-    } else {
+      if (timeIn) modalTime.innerHTML = '⏰ Time in: ' + timeIn;
+    } 
+    else {
       modalTitle.innerHTML = '✅ Success!';
+      modalContent.classList.add('modal-success');
       modalIcon.style.background = 'linear-gradient(135deg, #10b981, #059669)';
       modalMessage.innerHTML = studentName + ' tapped their ID!';
-    }
-    
-    if (timeIn) {
-      modalTime.innerHTML = '⏰ Time in: ' + timeIn;
+      if (timeIn) modalTime.innerHTML = '⏰ Time in: ' + timeIn;
     }
     
     modal.classList.add('active');
@@ -255,18 +283,29 @@
         document.getElementById('presentCount').innerHTML = data.present_count;
         document.getElementById('lateCount').innerHTML = data.late_count;
         document.getElementById('attendanceRate').innerHTML = data.attendance_rate || '0';
+        document.getElementById('totalStudents').innerHTML = data.total_students || '0';
+        
+        // Check for rejection error from record_attendance
+        if (data.rejection) {
+          const reject = data.rejection;
+          if (reject.type === 'not_enrolled') {
+            showModal(reject.student_name, null, null, false, true);
+          } else if (reject.type === 'dropped') {
+            showModal(reject.student_name, null, null, true, false);
+          }
+        }
         
         // Check each attendance record for NEW changes
         for (var i = 0; i < data.attendance.length; i++) {
           var att = data.attendance[i];
           var studentId = att.student_id;
           var currentStatus = att.status;
+          var isDropped = (att.student_status === 'dropped');
           var previousStatus = previousAttendance[studentId];
           
-          // Only show modal if status changed from absent/not recorded to present/late
-          if (previousStatus !== currentStatus && (currentStatus === 'present' || currentStatus === 'late')) {
-            // Show modal for the student who just tapped
-            showModal(att.student_name, att.time_in, currentStatus);
+          // Show modal if status changed from not_tapped to present/late (successful tap)
+          if (previousStatus !== undefined && previousStatus === 'not_tapped' && (currentStatus === 'present' || currentStatus === 'late')) {
+            showModal(att.student_name, att.time_in, currentStatus, false, false);
           }
           
           // Update previous status
@@ -278,11 +317,21 @@
             if (parseInt(rows[r].getAttribute('data-student-id')) === studentId) {
               var statusCell = rows[r].querySelector('.status-cell');
               var timeCell = rows[r].querySelector('.time-cell');
+              var row = rows[r];
               
-              if (currentStatus === 'present') {
+              row.classList.remove('student-row-present', 'student-row-late', 'student-row-dropped');
+              
+              if (isDropped) {
+                statusCell.innerHTML = '<span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">❌ Dropped</span>';
+                row.classList.add('student-row-dropped');
+              } else if (currentStatus === 'present') {
                 statusCell.innerHTML = '<span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">✅ Present</span>';
+                row.classList.add('student-row-present');
               } else if (currentStatus === 'late') {
                 statusCell.innerHTML = '<span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">⚠️ Late</span>';
+                row.classList.add('student-row-late');
+              } else if (currentStatus === 'not_tapped') {
+                statusCell.innerHTML = '<span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">⏳ Not yet tapped</span>';
               }
               timeCell.innerHTML = att.time_in || '—';
               break;

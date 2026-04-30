@@ -7,12 +7,11 @@ import threading
 
 # CONFIGURATION
 BAUD_RATE = 9600
-DJANGO_URL = 'http://127.0.0.1:8000'
-PENDING_TIMEOUT = 300  # 5 minutes timeout for pending registration
+DJANGO_URL = 'https://CCS.pythonanywhere.com'  # Your live website
+PENDING_TIMEOUT = 300
 
 # Auto-detect Arduino port
 def find_arduino_port():
-    """Automatically find and return the Arduino port"""
     print("Scanning for Arduino...")
     ports = serial.tools.list_ports.comports()
     
@@ -22,19 +21,7 @@ def find_arduino_port():
             print(f"✓ Found Arduino on {port.device}")
             return port.device
     
-    # If no Arduino found, try common ports
-    common_ports = ['COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'COM10']
-    print("Trying common ports...")
-    for port in common_ports:
-        try:
-            test_serial = serial.Serial(port, BAUD_RATE, timeout=1)
-            test_serial.close()
-            print(f"✓ Found Arduino on {port}")
-            return port
-        except:
-            continue
-    
-    print("❌ Could not find Arduino. Please check connection.")
+    print("❌ Could not find Arduino.")
     return None
 
 # Get Arduino port automatically
@@ -44,80 +31,110 @@ if ARDUINO_PORT is None:
     exit(1)
 
 print(f"Using port: {ARDUINO_PORT}")
-
-# Global serial connection for LED control
 ser = None
 
-def blink_led(success=True):
-    """Blink LED on Arduino - success=True = fast blink, success=False = long blink"""
+# Global variables for state
+current_pending_student_id = None
+current_pending_student_name = None
+pending_start_time = None
+current_session_id = None
+last_session_check = 0
+
+def send_command(cmd):
+    """Send command to Arduino"""
     global ser
-    if ser is None:
-        return
-    try:
-        if success:
-            # Fast blink (success)
-            ser.write(b'LED_SUCCESS\n')
-        else:
-            # Long blink (fail)
-            ser.write(b'LED_FAIL\n')
-    except:
-        pass  # Don't crash if LED control fails
+    if ser:
+        try:
+            ser.write(f'{cmd}\n'.encode())
+        except Exception as e:
+            print(f"   ⚠️ Could not send command {cmd}: {e}")
+
+def beep_success():
+    """Send command to Arduino to play success beep"""
+    send_command("BEEP")
+
+def led_green():
+    """Turn on Green LED (success)"""
+    send_command("GREEN")
+
+def led_yellow():
+    """Turn on Yellow LED (warning - late or 4 absences)"""
+    send_command("YELLOW")
+
+def led_red():
+    """Turn on Red LED (error)"""
+    send_command("RED")
+
+def led_off():
+    """Turn off all LEDs"""
+    send_command("LEDOFF")
 
 def get_active_session():
-    """Check if there's an active class session"""
     try:
-        response = requests.get(f'{DJANGO_URL}/api/get-active-session/', timeout=2)
+        print("[DEBUG] Checking for active session...")
+        response = requests.get(f'{DJANGO_URL}/api/get-active-session/', timeout=3)
+        print(f"[DEBUG] Response status: {response.status_code}")
+        print(f"[DEBUG] Response text: {response.text}") # This will print the raw response from the server
+        
         if response.status_code == 200:
             data = response.json()
             if data.get('has_active_session'):
+                print(f"[DEBUG] Session found! ID: {data.get('session_id')}")
                 return data.get('session_id')
-    except Exception:
-        pass
+            else:
+                print("[DEBUG] No active session found by the server.")
+    except Exception as e:
+        print(f"[ERROR] Error checking session: {e}")
     return None
 
 def check_pending_registration():
     """Check if there's a student waiting for RFID registration"""
+    global current_pending_student_id, current_pending_student_name, pending_start_time
+    
     try:
-        response = requests.get(f'{DJANGO_URL}/api/pending-rfid/check/', timeout=2)
+        response = requests.get(f'{DJANGO_URL}/api/pending-rfid/check/', timeout=10)
         if response.status_code == 200:
             data = response.json()
             if data.get('waiting'):
-                return data.get('student_id'), data.get('student_name'), data.get('expires_at')
-    except Exception:
-        pass
+                student_id = data.get('student_id')
+                student_name = data.get('student_name')
+                
+                # New pending registration detected
+                if student_id != current_pending_student_id:
+                    current_pending_student_id = student_id
+                    current_pending_student_name = student_name
+                    pending_start_time = time.time()
+                    print(f"\n📝 PENDING REGISTRATION detected for: {student_name}")
+                    print(f"   Student ID: {student_id}")
+                    print(f"   Please tap the RFID card now!\n")
+                return student_id, student_name, data.get('expires_at')
+            else:
+                # No pending registration
+                if current_pending_student_id is not None:
+                    print(f"\n⏰ Pending registration cleared or expired.\n")
+                    current_pending_student_id = None
+                    current_pending_student_name = None
+                    pending_start_time = None
+    except Exception as e:
+        print(f"Error checking pending: {e}")
     return None, None, None
 
-def send_rfid_to_receive_endpoint(rfid_tag):
-    """Send RFID tag to receive endpoint for claiming existing accounts"""
-    try:
-        requests.post(
-            f'{DJANGO_URL}/api/receive-rfid/',
-            json={'rfid_tag': rfid_tag},
-            timeout=1
-        )
-    except:
-        pass
-
 def clear_pending_registration(student_id=None):
-    """Clear pending registration"""
     try:
         data = {'student_id': student_id} if student_id else {}
-        requests.post(
-            f'{DJANGO_URL}/api/clear-pending-rfid/',
-            json=data,
-            timeout=2
-        )
+        requests.post(f'{DJANGO_URL}/api/clear-pending-rfid/', json=data, timeout=2)
     except:
         pass
 
 def main():
-    global ser
+    global ser, current_session_id, last_session_check
+    global current_pending_student_id, current_pending_student_name, pending_start_time
     
     print("=" * 60)
     print("RFID READER - Registration & Attendance (Auto-switching)")
+    print(f"Connected to: {DJANGO_URL}")
     print("=" * 60)
     
-    # Connect to Arduino
     try:
         ser = serial.Serial(ARDUINO_PORT, BAUD_RATE, timeout=1)
         print(f"Connected to Arduino on {ARDUINO_PORT}")
@@ -125,144 +142,159 @@ def main():
         print(f"ERROR: Cannot open {ARDUINO_PORT}: {e}")
         return
     
-    current_session_id = None
-    last_session_check = 0
-    pending_start_time = None
-    current_pending_student = None
-    
     print("\n✓ Ready for BOTH student registration AND attendance")
-    print("✓ Will automatically detect which mode to use\n")
+    print("✓ Auto-detects mode based on website state\n")
+    
+    # Start background thread to check for pending registrations
+    def background_check():
+        global current_session_id, last_session_check
+        while True:
+            try:
+                # Check for active session every 3 seconds
+                now = time.time()
+                if now - last_session_check > 3:
+                    last_session_check = now
+                    new_session = get_active_session()
+                    if new_session != current_session_id:
+                        if new_session:
+                            print(f"\n✅ ACTIVE SESSION DETECTED! ID: {new_session}")
+                            print("   → Attendance mode ACTIVE\n")
+                        elif current_session_id:
+                            print(f"\n⚠️ Session {current_session_id} ended.\n")
+                        current_session_id = new_session
+                
+                # Check for pending registration every 2 seconds
+                check_pending_registration()
+                
+            except Exception as e:
+                print(f"Background error: {e}")
+            time.sleep(1)
+    
+    # Start background thread
+    bg_thread = threading.Thread(target=background_check, daemon=True)
+    bg_thread.start()
     
     while True:
-        # Check for active session every 2 seconds
-        now = time.time()
-        if now - last_session_check > 2:
-            last_session_check = now
-            new_session = get_active_session()
-            if new_session != current_session_id:
-                if new_session:
-                    print(f"✅ ACTIVE SESSION DETECTED! ID: {new_session}")
-                    print("   → Attendance mode ACTIVE")
-                    current_session_id = new_session
-                elif current_session_id:
-                    print(f"⚠️ Session {current_session_id} ended.")
-                    print("   → Back to waiting for registration or new session")
-                    current_session_id = None
-        
-        # Check for pending registration timeout
-        if pending_start_time and (time.time() - pending_start_time) > PENDING_TIMEOUT:
-            print(f"⏰ Pending registration timed out after {PENDING_TIMEOUT} seconds")
-            if current_pending_student:
-                clear_pending_registration(current_pending_student)
-            pending_start_time = None
-            current_pending_student = None
-        
         # Read line from Arduino
         line = ser.readline().decode('utf-8').strip()
+        
+        # DEBUG: Show raw data received from Arduino
+        if line:
+            print(f"[DEBUG] Raw from Arduino: '{line}'")
         
         if not line:
             continue
         
         # Look for UID pattern
-        match = re.search(r'([0-9A-F]{2} [0-9A-F]{2} [0-9A-F]{2} [0-9A-F]{2})', line)
+        match = re.search(r'([0-9A-F]{2} [0-9A-F]{2} [0-9A-F]{2} [0-9A-F]{2})', line, re.IGNORECASE)
         if not match:
+            print(f"[DEBUG] No UID pattern found in: '{line}'")
             continue
         
         rfid_tag = match.group(1)
         print(f"\n📇 Card tapped: {rfid_tag}")
+
+        # For Superadmin Add/Change RFID feature
+        try:
+            receive_response = requests.post(
+                f'{DJANGO_URL}/api/receive-rfid/',
+                json={'rfid_tag': rfid_tag},
+                timeout=2
+            )
+            if receive_response.status_code == 200:
+                print(f"   → Sent to receive-rfid endpoint for manual assignment")
+            else:
+                print(f"   → receive-rfid response: {receive_response.status_code}")
+        except Exception as e:
+            print(f"   → Error sending to receive-rfid: {e}")
         
-        # Send RFID to receive endpoint for claiming existing accounts
-        send_rfid_to_receive_endpoint(rfid_tag)
-        
-        # ALWAYS check for pending registration FIRST (new user registration)
-        student_id, student_name, expires_at = check_pending_registration()
-        
-        if student_id:
-            if not pending_start_time:
-                pending_start_time = time.time()
-                current_pending_student = student_id
-                print(f"   📝 PENDING REGISTRATION detected for: {student_name}")
-                print(f"   ⏰ This will timeout in {PENDING_TIMEOUT} seconds")
-            
+        # PRIORITY 1: Pending registration
+        if current_pending_student_id is not None:
+            print(f"   → Processing REGISTRATION for student: {current_pending_student_name}")
             try:
                 response = requests.post(
                     f'{DJANGO_URL}/api/rfid/',
-                    json={'rfid_tag': rfid_tag, 'student_id': student_id},
-                    timeout=2
+                    json={'rfid_tag': rfid_tag, 'student_id': current_pending_student_id},
+                    timeout=10
                 )
                 if response.status_code == 200:
-                    print(f"   ✅ RFID REGISTERED for {student_name}!")
-                    print(f"   → Account created! You can now login.")
-                    blink_led(success=True)  # LED: success blink
-                    # Clear the pending registration after successful registration
-                    clear_pending_registration(student_id)
-                    pending_start_time = None
-                    current_pending_student = None
-                else:
-                    error_msg = response.json().get('error', 'Unknown error')
-                    print(f"   ❌ Registration error: {error_msg}")
-                    blink_led(success=False)  # LED: fail blink
-                    # If error, still clear pending to allow retry
-                    if "already registered" in error_msg:
-                        clear_pending_registration(student_id)
+                    result = response.json()
+                    if result.get('status') == 'success':
+                        print(f"   ✅ RFID REGISTERED for {current_pending_student_name}!")
+                        beep_success()
+                        led_green()  # Green LED for success
+                        # Clear pending
+                        clear_pending_registration(current_pending_student_id)
+                        current_pending_student_id = None
+                        current_pending_student_name = None
                         pending_start_time = None
-                        current_pending_student = None
+                        # Turn off LED after 2 seconds
+                        time.sleep(2)
+                        led_off()
+                    else:
+                        print(f"   ❌ Registration error: {result.get('message')}")
+                        led_red()  # Red LED for error
+                        time.sleep(2)
+                        led_off()
+                else:
+                    print(f"   ❌ HTTP Error: {response.status_code}")
+                    led_red()
+                    time.sleep(2)
+                    led_off()
             except Exception as e:
                 print(f"   ❌ Error: {e}")
-                blink_led(success=False)  # LED: fail blink
-            continue  # Skip attendance - this was registration
+                led_red()
+                time.sleep(2)
+                led_off()
+            continue
         
-        # Reset pending timeout if no pending registration
-        if pending_start_time:
-            pending_start_time = None
-            current_pending_student = None
-        
-        # If no pending registration, check for attendance (active session)
+        # PRIORITY 2: Attendance (active session)
         if current_session_id:
-            print(f"   → Attendance mode: Recording to session {current_session_id}")
+            print(f"   → Processing ATTENDANCE for session {current_session_id}")
             try:
                 response = requests.post(
                     f'{DJANGO_URL}/record-attendance/',
                     json={'rfid_tag': rfid_tag, 'session_id': current_session_id},
-                    timeout=2
+                    timeout=10
                 )
                 if response.status_code == 200:
                     result = response.json()
-                    print(f"   ✅ {result.get('message')}")
-                    blink_led(success=True)  # LED: success blink
+                    status = result.get('status')
+                    message = result.get('message')
+                    print(f"   ✅ {message}")
+                    
+                    # Check if it's late (based on message or status)
+                    if 'late' in message.lower() or status == 'late':
+                        led_yellow()  # Yellow LED for late
+                    else:
+                        led_green()  # Green LED for present on time
+                    
+                    beep_success()
+                    time.sleep(2)
+                    led_off()
                 else:
-                    error = response.json().get('error')
+                    error = response.json().get('error', 'Unknown error')
                     print(f"   ❌ {error}")
-                    blink_led(success=False)  # LED: fail blink
+                    led_red()
+                    time.sleep(2)
+                    led_off()
             except Exception as e:
                 print(f"   ❌ Error: {e}")
-                blink_led(success=False)  # LED: fail blink
+                led_red()
+                time.sleep(2)
+                led_off()
             continue
         
-        # No pending registration and no active session
-        # Check if card is registered (info only)
-        try:
-            check_user_response = requests.get(
-                f'{DJANGO_URL}/api/check-user-by-rfid/',
-                params={'rfid_tag': rfid_tag},
-                timeout=2
-            )
-            if check_user_response.status_code == 200:
-                user_data = check_user_response.json()
-                if user_data.get('exists'):
-                    print(f"   ℹ️ Card belongs to: {user_data.get('name')}")
-                    print(f"   ⏳ No active session. Teacher must start a class for attendance.")
-                    blink_led(success=True)  # LED: blink to show card recognized
-                else:
-                    print(f"   ❌ Card not registered.")
-                    print(f"   → To register: Fill out the registration form first, then tap your card.")
-                    blink_led(success=False)  # LED: fail blink
-        except:
-            print(f"   ⏳ No active session and no pending registration.")
-            blink_led(success=False)
+        # No pending, no active session
+        print(f"   ⏳ No active session and no pending registration.")
+        print(f"   → Start a class session OR open registration modal.")
+        print(f"   → For Add/Change RFID, click the button on User Management page.\n")
+        led_off()
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
         print("\n👋 Shutting down...")
+        if ser:
+            ser.close()

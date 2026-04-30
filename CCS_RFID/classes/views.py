@@ -1124,9 +1124,25 @@ def record_attendance(request):
             # Check enrollment
             enrollment = Enrollment.objects.filter(student=student, class_obj=session.class_obj).first()
             if not enrollment:
+                # Store the rejected attempt in session for the frontend to display
+                request.session[f'rejected_student_{session.id}'] = {
+                    'type': 'not_enrolled',
+                    'student_name': student.get_full_name(),
+                    'student_id': student.id,
+                    'message': f'{student.get_full_name()} is not enrolled in this class.'
+                }
+                request.session.modified = True
                 return JsonResponse({'error': f'{student.get_full_name()} is not enrolled.'}, status=403)
             
             if enrollment.status == 'dropped':
+                # Store the dropped student attempt in session for frontend
+                request.session[f'rejected_student_{session.id}'] = {
+                    'type': 'dropped',
+                    'student_name': student.get_full_name(),
+                    'student_id': student.id,
+                    'message': f'{student.get_full_name()} has been dropped from this class.'
+                }
+                request.session.modified = True
                 return JsonResponse({'error': f'{student.get_full_name()} has been dropped.'}, status=403)
             
             # Check for duplicate
@@ -1659,27 +1675,73 @@ def attendance_stream(request, session_id):
 
 @csrf_exempt
 def get_attendance_simple(request, session_id):
-    """Simple API to get attendance data as JSON"""
+    """Simple API to get attendance data as JSON, including last rejection error"""
     try:
         session = ClassSession.objects.get(id=session_id)
-        attendances = Attendance.objects.filter(session=session).select_related('student')
+        
+        # Get all enrolled students for this class
+        enrollments = Enrollment.objects.filter(class_obj=session.class_obj).select_related('student')
+        
+        # Get attendance records for this session
+        attendances = {att.student.id: att for att in Attendance.objects.filter(session=session).select_related('student')}
         
         result = []
-        for att in attendances:
+        for enrollment in enrollments:
+            student = enrollment.student
+            attendance = attendances.get(student.id)
+            
+            # Determine status
+            if enrollment.status == 'dropped':
+                student_display_status = 'dropped'
+            elif not attendance:
+                student_display_status = 'not_tapped'
+            else:
+                student_display_status = attendance.status
+            
             result.append({
-                'student_id': att.student.id,
-                'student_name': att.student.get_full_name(),
-                'time_in': att.time_in.strftime('%I:%M %p'),
-                'status': att.status
+                'student_id': student.id,
+                'student_name': student.get_full_name(),
+                'student_status': enrollment.status,
+                'time_in': attendance.time_in.strftime('%I:%M %p') if attendance and attendance.time_in else None,
+                'status': student_display_status,
+                'attendance_status': attendance.status if attendance else None,
             })
         
-        return JsonResponse({
+        # Check for rejected student from session
+        rejected_key = f'rejected_student_{session_id}'
+        last_rejection = request.session.get(rejected_key)
+        
+        # Clear the rejection after reading
+        if last_rejection:
+            del request.session[rejected_key]
+            request.session.modified = True
+        
+        # Calculate counts
+        present_count = len([a for a in result if a.get('attendance_status') == 'present'])
+        late_count = len([a for a in result if a.get('attendance_status') == 'late'])
+        total_students = len(result)
+        attendance_rate = int(((present_count + late_count) / total_students) * 100) if total_students > 0 else 0
+        
+        response_data = {
             'attendance': result,
-            'present_count': attendances.filter(status='present').count(),
-            'late_count': attendances.filter(status='late').count()
-        })
-    except:
-        return JsonResponse({'attendance': []})
+            'present_count': present_count,
+            'late_count': late_count,
+            'total_students': total_students,
+            'attendance_rate': attendance_rate,
+        }
+        
+        # Add rejection info if exists
+        if last_rejection:
+            response_data['rejection'] = last_rejection
+        
+        return JsonResponse(response_data)
+        
+    except ClassSession.DoesNotExist:
+        return JsonResponse({'error': 'Session not found'}, status=404)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'error': str(e)}, status=500)
     
 @csrf_exempt
 @login_required
